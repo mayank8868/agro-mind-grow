@@ -14,8 +14,36 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
+# Dependencies
 node_modules
 dist
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+backend/env/
+*.egg-info/
+
+# Model files (optional - uncomment if you don't want to track large model files)
+# backend/models/*.pth
+
+# Dataset (optional - uncomment if dataset is too large)
+# datasets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
 dist-ssr
 *.local
 

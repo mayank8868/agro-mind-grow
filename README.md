@@ -15,7 +15,8 @@ AgroMind Grow is a revolutionary web-based smart agriculture platform designed t
 - **25% increase** in farmer income through optimized decisions
 - **40% reduction** in operational costs via efficient resource management
 - **50% improvement** in risk mitigation through predictive analytics
-- **95% accuracy** in AI-powered plant disease detection
+- **99.74% accuracy** in AI-powered plant disease detection (EfficientNet-B1)
+- **38 disease classes** covering major crops (Apple, Tomato, Corn, Potato, Grape, etc.)
 
 ## ✨ Features
 
@@ -37,11 +38,14 @@ AgroMind Grow is a revolutionary web-based smart agriculture platform designed t
 - Automated task scheduling and reminders
 - Yield prediction and optimization
 
-### 🐛 AI-Powered Pest Control
-- Disease identification through image recognition (95% accuracy)
-- Pest outbreak predictions based on weather patterns
-- Treatment recommendations (organic and chemical options)
-- Prevention strategies database
+### 🐛 AI-Powered Plant Disease Detection
+- **Deep Learning Model**: EfficientNet-B1 with 99.74% validation accuracy
+- **38 Disease Classes**: Covers major crops (Apple, Tomato, Corn, Potato, Grape, etc.)
+- **Crop-Specific Filtering**: Select plant type for accurate disease identification
+- **Comprehensive Information**: Disease-specific symptoms, causes, and treatments
+- **Smart Detection**: Test Time Augmentation (TTA) for robust predictions
+- **Treatment Recommendations**: Chemical, organic, and prevention methods
+- **Fallback Detection**: Generic disease detection for unknown cases
 
 ### 🚜 Equipment Management
 - Equipment inventory tracking and maintenance scheduling
@@ -88,18 +92,19 @@ AgroMind Grow is a revolutionary web-based smart agriculture platform designed t
 | **Build Tool** | Vite | Fast development and deployment |
 | **State Management** | React Query | Data fetching and caching |
 | **Routing** | React Router | Navigation and page management |
-| **ML Backend** | Python + FastAPI | Machine learning model serving |
-| **Plant Quality** | Random Forest + OpenCV | Disease detection and quality check |
-| **Crop Recommendation** | XGBoost | Optimal crop selection algorithm |
-| **Deep Learning** | TensorFlow | Advanced plant recognition |
-| **Database** | PostgreSQL + Redis | Data storage and caching |
-| **Deployment** | Docker + AWS | Scalable cloud infrastructure |
+| **Backend API** | Python + FastAPI | RESTful API server |
+| **Deep Learning** | PyTorch + EfficientNet-B1 | Plant disease detection (99.74% accuracy) |
+| **Image Processing** | Torchvision + PIL | Image preprocessing and augmentation |
+| **Model Training** | Transfer Learning | Pre-trained EfficientNet fine-tuned on PlantVillage |
+| **Disease Database** | Custom Python Module | 38 disease classes with detailed information |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn package manager
+- **Node.js** (v18 or higher)
+- **Python** (3.8 or higher)
+- **npm** or yarn package manager
+- **CUDA** (optional, for GPU acceleration during training)
 
 ### Installation
 
@@ -109,69 +114,104 @@ AgroMind Grow is a revolutionary web-based smart agriculture platform designed t
    cd agro-mind-grow
    ```
 
-2. **Install dependencies**
+2. **Install Frontend Dependencies**
    ```bash
    npm install
    ```
 
-3. **Start development server**
+3. **Setup Backend**
    ```bash
-   npm run dev
+   cd backend
+   python -m venv venv
+   .\venv\Scripts\activate  # On Windows
+   # source venv/bin/activate  # On Linux/Mac
+   pip install -r requirements.txt
    ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:8080`
+### Running the Application
 
-### Alternative Setup (Windows)
-
-For Windows users, you can use the provided scripts:
-
-**PowerShell:**
+**Step 1: Start Backend API**
 ```powershell
-.\start.ps1
+cd backend
+.\venv\Scripts\activate
+python api.py
 ```
+Backend runs on: `http://localhost:8000`
 
-**Command Prompt:**
-```cmd
+**Step 2: Start Frontend** (in a new terminal)
+```bash
+cd agro-mind-grow
 .\start.bat
 ```
+Frontend runs on: `http://localhost:5173`
 
-These scripts will:
-- Set up the local Node.js environment
-- Install dependencies if needed
-- Start the development server
+### Using the Plant Disease Detection
+
+1. Open browser and navigate to `http://localhost:5173/pest-control`
+2. **Select Plant Type** from dropdown (Apple, Tomato, Corn, Potato, etc.)
+3. **Upload Image** of the plant/leaf
+4. **View Results** with disease name, confidence, symptoms, causes, and treatments
 
 ## 📁 Project Structure
 
 ```
 agro-mind-grow/
-├── public/                 # Static assets
-│   ├── equipment.json     # Equipment data
-│   └── favicon.svg        # App favicon
-├── src/
-│   ├── components/        # Reusable UI components
-│   │   ├── ui/           # shadcn-ui components
-│   │   └── Navigation.tsx # Main navigation
-│   ├── hooks/            # Custom React hooks
-│   ├── lib/              # Utility functions and data
-│   ├── pages/            # Application pages
-│   │   ├── Index.tsx     # Dashboard
-│   │   ├── Weather.tsx   # Weather module
-│   │   ├── MarketPrices.tsx
-│   │   ├── CropCalendar.tsx
-│   │   ├── PestControl.tsx
-│   │   ├── Equipment.tsx
+├── backend/                      # Backend API and ML Model
+│   ├── api.py                   # FastAPI server for disease detection
+│   ├── train.py                 # Model training script
+│   ├── disease_database.py      # Disease information database (38 classes)
+│   ├── models/
+│   │   ├── best_model.pth       # Trained EfficientNet-B1 model (99.74% accuracy)
+│   │   └── class_to_idx.json    # Class mapping and model metadata
+│   ├── datasets/                # Training dataset (PlantVillage)
+│   │   ├── train/               # Training images (38 disease classes)
+│   │   └── validation/          # Validation images
+│   ├── venv/                    # Python virtual environment
+│   └── requirements.txt         # Python dependencies
+│
+├── src/                         # Frontend Source Code
+│   ├── components/              # Reusable UI components
+│   │   ├── ui/                  # shadcn-ui components
+│   │   └── Navigation.tsx       # Main navigation
+│   ├── hooks/                   # Custom React hooks
+│   ├── lib/                     # Utility functions and data
+│   ├── pages/                   # Application pages
+│   │   ├── Index.tsx            # Dashboard
+│   │   ├── Weather.tsx          # Weather module
+│   │   ├── MarketPrices.tsx     # Market intelligence
+│   │   ├── CropCalendar.tsx     # Crop management
+│   │   ├── PestControl.tsx      # AI Disease Detection ⭐
+│   │   ├── Equipment.tsx        # Equipment management
 │   │   ├── ExpertConsultation.tsx
 │   │   ├── FarmPlanning.tsx
 │   │   ├── GovernmentSchemes.tsx
 │   │   └── KnowledgeBase.tsx
-│   ├── App.tsx           # Main app component
-│   └── main.tsx          # Entry point
-├── local-node/           # Local Node.js installation
-├── start.ps1            # PowerShell startup script
-├── start.bat            # Batch startup script
-└── package.json         # Dependencies and scripts
+│   ├── App.tsx                  # Main app component
+│   └── main.tsx                 # Entry point
+│
+├── public/                      # Static assets
+│   ├── equipment.json           # Equipment data
+│   └── favicon.svg              # App favicon
+│
+├── local-node/                  # Local Node.js installation
+├── start.bat                    # Frontend startup script
+├── package.json                 # Frontend dependencies
+├── HOW_TO_START.md             # Detailed startup guide
+└── README.md                    # This file
 ```
+
+### Key Files Explained
+
+**Backend:**
+- `api.py` - Main API server with disease detection endpoint
+- `disease_database.py` - Complete disease information for all 38 classes
+- `train.py` - EfficientNet-B1 training script with data augmentation
+- `best_model.pth` - Trained model weights (99.74% validation accuracy)
+
+**Frontend:**
+- `PestControl.tsx` - Disease detection interface with crop selection
+- `Navigation.tsx` - Main navigation with all modules
+- `start.bat` - Quick startup script for frontend
 
 ## 🎯 Use Cases
 
