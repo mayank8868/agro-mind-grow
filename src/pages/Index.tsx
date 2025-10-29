@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Navigation from "@/components/Navigation";
 import { 
   Cloud, 
   TrendingUp, 
@@ -86,7 +85,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
       
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
@@ -96,7 +94,7 @@ const Index = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70" />
         
-        <div className="relative container mx-auto px-4 text-center">
+        <div className="relative w-full px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
               Smart Agriculture
@@ -128,7 +126,7 @@ const Index = () => {
 
       {/* Features Grid */}
       <section className="py-20 bg-gradient-earth">
-        <div className="container mx-auto px-4">
+        <div className="w-full px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Comprehensive Farming Solutions</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -165,7 +163,7 @@ const Index = () => {
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-primary">
-        <div className="container mx-auto px-4 text-center">
+        <div className="w-full px-4 text-center">
           <h3 className="text-3xl font-bold text-white mb-4">
             Ready to Transform Your Farming?
           </h3>

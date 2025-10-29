@@ -1,4 +1,3 @@
-import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -318,9 +317,8 @@ const PestControl = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Pest & Disease Control</h1>
           <p className="text-muted-foreground text-lg">
@@ -330,11 +328,11 @@ const PestControl = () => {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-green-800">
-                🚀 HIGH-ACCURACY AI SYSTEM: Deep Learning • Transfer Learning • 39 Disease Classes
+                 HIGH-ACCURACY AI SYSTEM: Deep Learning • Transfer Learning • 39 Disease Classes
               </span>
             </div>
             <p className="text-xs text-green-600 mt-1">
-              ✅ EfficientNet Architecture • Data Augmentation • Real-time Analysis • Backend: localhost:8000
+                EfficientNet Architecture • Data Augmentation • Real-time Analysis • Backend: localhost:8000
             </p>
           </div>
         </div>

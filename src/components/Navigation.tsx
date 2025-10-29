@@ -1,5 +1,4 @@
 import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { 
   Cloud, 
   TrendingUp, 
@@ -8,7 +7,6 @@ import {
   Wrench, 
   Users, 
   Map, 
-  FileText, 
   BookOpen,
   Leaf
 } from "lucide-react";
@@ -25,47 +23,31 @@ const Navigation = () => {
     { to: "/equipment", icon: Wrench, label: "Equipment" },
     { to: "/expert-consultation", icon: Users, label: "Expert Consultation" },
     { to: "/farm-planning", icon: Map, label: "Farm Planning" },
-    { to: "/government-schemes", icon: FileText, label: "Gov Schemes" },
     { to: "/knowledge-base", icon: BookOpen, label: "Knowledge Base" },
   ];
 
   return (
-    <nav className="bg-card border-b shadow-soft">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <Leaf className="h-8 w-8 text-primary" />
-            <span className="font-bold text-xl bg-gradient-primary bg-clip-text text-transparent">
-              AgroMind
-            </span>
-          </Link>
-          
-          <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.to;
-              
-              return (
-                <Link key={item.to} to={item.to}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    className="flex items-center space-x-2"
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                  </Button>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="md:hidden">
-            <Button variant="ghost" size="sm">
-              <span className="sr-only">Open menu</span>
-              ☰
-            </Button>
-          </div>
+    <nav className="w-full">
+      <div className="h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 text-foreground">
+          <Leaf className="h-5 w-5 text-primary" />
+          <span className="text-base font-semibold">AgroMind Grow</span>
+        </Link>
+        <div className="hidden md:flex items-center gap-6">
+          {navItems.map((item) => {
+            const active = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={
+                  `text-sm transition-colors hover:text-primary ${active ? "text-primary font-medium" : "text-muted-foreground"}`
+                }
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
