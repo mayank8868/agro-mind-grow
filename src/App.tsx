@@ -10,9 +10,7 @@ import MarketPrices from "./pages/MarketPrices";
 import CropCalendar from "./pages/CropCalendar";
 import PestControl from "./pages/PestControl";
 import Equipment from "./pages/Equipment";
-import ExpertConsultation from "./pages/ExpertConsultation";
-import FarmPlanning from "./pages/FarmPlanning";
-import GovernmentSchemes from "./pages/GovernmentSchemes";
+import PlanningConsultation from "./pages/PlanningConsultation";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import NotFound from "./pages/NotFound";
 
@@ -56,9 +54,7 @@ const App = () => (
             <Route path="/crop-calendar" element={<CropCalendar />} />
             <Route path="/pest-control" element={<PestControl />} />
             <Route path="/equipment" element={<Equipment />} />
-            <Route path="/expert-consultation" element={<ExpertConsultation />} />
-            <Route path="/farm-planning" element={<FarmPlanning />} />
-            <Route path="/government-schemes" element={<GovernmentSchemes />} />
+            <Route path="/planning" element={<PlanningConsultation />} />
             <Route path="/knowledge-base" element={<KnowledgeBase />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

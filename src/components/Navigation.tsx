@@ -6,7 +6,6 @@ import {
   Bug, 
   Wrench, 
   Users, 
-  Map, 
   BookOpen,
   Leaf
 } from "lucide-react";
@@ -21,8 +20,7 @@ const Navigation = () => {
     { to: "/crop-calendar", icon: Calendar, label: "Crop Calendar" },
     { to: "/pest-control", icon: Bug, label: "Pest Control" },
     { to: "/equipment", icon: Wrench, label: "Equipment" },
-    { to: "/expert-consultation", icon: Users, label: "Expert Consultation" },
-    { to: "/farm-planning", icon: Map, label: "Farm Planning" },
+    { to: "/planning", icon: Users, label: "Planning & Consultation" },
     { to: "/knowledge-base", icon: BookOpen, label: "Knowledge Base" },
   ];
 

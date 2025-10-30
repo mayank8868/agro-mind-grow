@@ -54,31 +54,17 @@ const Index = () => {
       color: "from-gray-500 to-slate-500"
     },
     {
-      to: "/expert-consultation",
+      to: "/planning",
       icon: Users,
-      title: "Expert Consultation",
-      description: "Connect with agriculture experts for personalized farming advice",
+      title: "Planning & Consultation",
+      description: "Farm planning and book consultations with agricultural experts",
       color: "from-purple-500 to-violet-500"
-    },
-    {
-      to: "/farm-planning",
-      icon: Map,
-      title: "Farm Planning Tools",
-      description: "Plan your farm layout, crop rotation, and resource management",
-      color: "from-teal-500 to-cyan-500"
-    },
-    {
-      to: "/government-schemes",
-      icon: FileText,
-      title: "Government Schemes",
-      description: "Access government subsidies, loans, and agricultural schemes",
-      color: "from-indigo-500 to-blue-500"
     },
     {
       to: "/knowledge-base",
       icon: BookOpen,
-      title: "Knowledge Base",
-      description: "Comprehensive farming guides, tutorials, and best practices",
+      title: "Knowledge Base & Schemes",
+      description: "Learn farming techniques and access government schemes",
       color: "from-emerald-500 to-green-500"
     }
   ];
@@ -113,7 +99,7 @@ const Index = () => {
                   Start Farming Smart
                 </Button>
               </Link>
-              <Link to="/expert-consultation">
+              <Link to="/planning">
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary bg-transparent backdrop-blur-sm">
                   Consult Experts
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -171,7 +157,7 @@ const Index = () => {
             Join thousands of farmers who are already using smart agriculture techniques 
             to increase their yield and profits
           </p>
-          <Link to="/expert-consultation">
+          <Link to="/planning">
             <Button size="lg" className="bg-white text-primary hover:bg-white/90">
               Get Started Today
               <ArrowRight className="ml-2 h-5 w-5" />
