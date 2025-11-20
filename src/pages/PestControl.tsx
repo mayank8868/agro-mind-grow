@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -40,25 +40,11 @@ interface DiseaseResult {
   top3_predictions: Prediction[];
 }
 
-const PLANT_TYPES = [
-  { value: "tomato", label: "Tomato" },
-  { value: "potato", label: "Potato" },
-  { value: "corn", label: "Corn (Maize)" },
-  { value: "grape", label: "Grape" },
-  { value: "apple", label: "Apple" },
-  { value: "pepper", label: "Bell Pepper" },
-  { value: "strawberry", label: "Strawberry" },
-  { value: "peach", label: "Peach" },
-  { value: "cherry", label: "Cherry" },
-  { value: "blueberry", label: "Blueberry" },
-  { value: "raspberry", label: "Raspberry" },
-  { value: "soybean", label: "Soybean" },
-  { value: "squash", label: "Squash" },
-];
+
 
 const PestControl = () => {
   const { toast } = useToast();
-  const [selectedPlant, setSelectedPlant] = useState<string>("");
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -131,9 +117,7 @@ const PestControl = () => {
     setLoading(true);
     const formData = new FormData();
     formData.append("file", file);
-    if (selectedPlant) {
-      formData.append("plant_type", selectedPlant);
-    }
+
 
     try {
       const response = await fetch("http://localhost:8000/predict", {
@@ -200,27 +184,7 @@ const PestControl = () => {
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* Plant Type Selector */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Plant Type (Optional)
-                  </label>
-                  <Select value={selectedPlant} onValueChange={setSelectedPlant}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a plant..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PLANT_TYPES.map((plant) => (
-                        <SelectItem key={plant.value} value={plant.value}>
-                          {plant.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Helps improve accuracy if you know the plant type.
-                  </p>
-                </div>
+
 
                 {/* Upload Area */}
                 <div
