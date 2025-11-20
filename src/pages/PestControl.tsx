@@ -4,21 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  Upload, 
-  X, 
-  Search, 
-  Leaf, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Info, 
-  Loader2, 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Upload,
+  X,
+  Search,
+  Leaf,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Loader2,
   Sprout,
   Bug,
   ShieldCheck
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
 
 interface Prediction {
   class: string;
@@ -112,7 +112,7 @@ const PestControl = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -176,7 +176,7 @@ const PestControl = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold text-green-800 dark:text-green-400 tracking-tight">
@@ -188,7 +188,7 @@ const PestControl = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column: Upload & Controls */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="border-green-100 shadow-lg">
@@ -199,7 +199,7 @@ const PestControl = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                
+
                 {/* Plant Type Selector */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">
@@ -242,51 +242,40 @@ const PestControl = () => {
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                   />
 
-                  <AnimatePresence mode="wait">
-                    {preview ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="relative"
+                  {preview ? (
+                    <div className="relative">
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-64 object-cover rounded-lg shadow-sm"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearSelection();
+                        }}
                       >
-                        <img
-                          src={preview}
-                          alt="Preview"
-                          className="w-full h-64 object-cover rounded-lg shadow-sm"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-md"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            clearSelection();
-                          }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="py-8 space-y-4"
-                      >
-                        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto">
-                          <Upload className="w-8 h-8 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            Click or drag image here
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Supports JPG, PNG, WEBP
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="py-8 space-y-4">
+                      <div className="w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto">
+                        <Upload className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          Click or drag image here
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Supports JPG, PNG, WEBP
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -313,189 +302,177 @@ const PestControl = () => {
 
           {/* Right Column: Results */}
           <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
-              {result ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="space-y-6"
-                >
-                  {/* Main Diagnosis Card */}
-                  <Card className={`border-l-4 shadow-md ${
-                    result.class.toLowerCase().includes("healthy") 
-                      ? "border-l-green-500" 
-                      : "border-l-red-500"
+            {result ? (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Main Diagnosis Card */}
+                <Card className={`border-l-4 shadow-md ${result.class.toLowerCase().includes("healthy")
+                  ? "border-l-green-500"
+                  : "border-l-red-500"
                   }`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-2xl flex items-center gap-2">
-                            {result.class.toLowerCase().includes("healthy") ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-500" />
-                            ) : (
-                              <AlertTriangle className="w-6 h-6 text-red-500" />
-                            )}
-                            {result.class.replace(/_/g, " ").replace("___", " - ")}
-                          </CardTitle>
-                          <CardDescription className="mt-2 text-base">
-                            {result.message}
-                          </CardDescription>
-                        </div>
-                        <Badge 
-                          variant={result.confidence > 70 ? "default" : "secondary"}
-                          className="text-lg px-3 py-1"
-                        >
-                          {result.confidence.toFixed(1)}% Confidence
-                        </Badge>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                          {result.class.toLowerCase().includes("healthy") ? (
+                            <CheckCircle2 className="w-6 h-6 text-green-500" />
+                          ) : (
+                            <AlertTriangle className="w-6 h-6 text-red-500" />
+                          )}
+                          {result.class.replace(/_/g, " ").replace("___", " - ")}
+                        </CardTitle>
+                        <CardDescription className="mt-2 text-base">
+                          {result.message}
+                        </CardDescription>
                       </div>
-                    </CardHeader>
-                    
-                    {/* Top 3 Predictions (if confidence is low/medium) */}
-                    {result.confidence < 85 && (
-                      <CardContent className="pb-2">
-                        <div className="bg-muted/50 p-3 rounded-lg text-sm">
-                          <p className="font-medium mb-2 text-muted-foreground">Alternative Possibilities:</p>
-                          <div className="space-y-1">
-                            {result.top3_predictions.slice(1).map((pred, idx) => (
-                              <div key={idx} className="flex justify-between items-center">
-                                <span>{pred.class.replace(/_/g, " ")}</span>
-                                <span className="font-mono text-muted-foreground">{pred.confidence.toFixed(1)}%</span>
-                              </div>
-                            ))}
-                          </div>
+                      <Badge
+                        variant={result.confidence > 70 ? "default" : "secondary"}
+                        className="text-lg px-3 py-1"
+                      >
+                        {result.confidence.toFixed(1)}% Confidence
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  {/* Top 3 Predictions (if confidence is low/medium) */}
+                  {result.confidence < 85 && (
+                    <CardContent className="pb-2">
+                      <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                        <p className="font-medium mb-2 text-muted-foreground">Alternative Possibilities:</p>
+                        <div className="space-y-1">
+                          {result.top3_predictions.slice(1).map((pred, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span>{pred.class.replace(/_/g, " ")}</span>
+                              <span className="font-mono text-muted-foreground">{pred.confidence.toFixed(1)}%</span>
+                            </div>
+                          ))}
                         </div>
-                      </CardContent>
-                    )}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* Detailed Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Symptoms */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Info className="w-5 h-5 text-blue-500" />
+                        Symptoms
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {result.symptoms.length > 0 ? (
+                          result.symptoms.map((symptom, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
+                              {symptom}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">No specific symptoms listed.</li>
+                        )}
+                      </ul>
+                    </CardContent>
                   </Card>
 
-                  {/* Detailed Info Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    {/* Symptoms */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Info className="w-5 h-5 text-blue-500" />
-                          Symptoms
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2">
-                          {result.symptoms.length > 0 ? (
-                            result.symptoms.map((symptom, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm">
-                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
-                                {symptom}
+                  {/* Causes */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Bug className="w-5 h-5 text-orange-500" />
+                        Causes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {result.causes.length > 0 ? (
+                          result.causes.map((cause, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+                              {cause}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">No specific causes listed.</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  {/* Treatments */}
+                  <Card className="md:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <ShieldCheck className="w-5 h-5 text-green-600" />
+                        Treatment & Prevention
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        {/* Organic */}
+                        <div>
+                          <h4 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                            <Leaf className="w-4 h-4" /> Organic
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.treatments.organic?.map((t, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-green-200 pl-2">
+                                {t}
                               </li>
-                            ))
-                          ) : (
-                            <li className="text-muted-foreground text-sm">No specific symptoms listed.</li>
-                          )}
-                        </ul>
-                      </CardContent>
-                    </Card>
-
-                    {/* Causes */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Bug className="w-5 h-5 text-orange-500" />
-                          Causes
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2">
-                          {result.causes.length > 0 ? (
-                            result.causes.map((cause, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm">
-                                <span className="mt-1.5 w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
-                                {cause}
-                              </li>
-                            ))
-                          ) : (
-                            <li className="text-muted-foreground text-sm">No specific causes listed.</li>
-                          )}
-                        </ul>
-                      </CardContent>
-                    </Card>
-
-                    {/* Treatments */}
-                    <Card className="md:col-span-2">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <ShieldCheck className="w-5 h-5 text-green-600" />
-                          Treatment & Prevention
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          
-                          {/* Organic */}
-                          <div>
-                            <h4 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
-                              <Leaf className="w-4 h-4" /> Organic
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.treatments.organic?.map((t, i) => (
-                                <li key={i} className="text-sm text-muted-foreground border-l-2 border-green-200 pl-2">
-                                  {t}
-                                </li>
-                              )) || <li className="text-sm text-muted-foreground">No organic treatments listed.</li>}
-                            </ul>
-                          </div>
-
-                          {/* Chemical */}
-                          <div>
-                            <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
-                              <AlertTriangle className="w-4 h-4" /> Chemical
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.treatments.chemical?.map((t, i) => (
-                                <li key={i} className="text-sm text-muted-foreground border-l-2 border-purple-200 pl-2">
-                                  {t}
-                                </li>
-                              )) || <li className="text-sm text-muted-foreground">No chemical treatments listed.</li>}
-                            </ul>
-                          </div>
-
-                          {/* Prevention */}
-                          <div>
-                            <h4 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
-                              <ShieldCheck className="w-4 h-4" /> Prevention
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.prevention?.map((p, i) => (
-                                <li key={i} className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
-                                  {p}
-                                </li>
-                              )) || <li className="text-sm text-muted-foreground">No prevention tips listed.</li>}
-                            </ul>
-                          </div>
-
+                            )) || <li className="text-sm text-muted-foreground">No organic treatments listed.</li>}
+                          </ul>
                         </div>
-                      </CardContent>
-                    </Card>
 
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="h-full flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/5"
-                >
-                  <div className="w-24 h-24 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
-                    <Sprout className="w-12 h-12 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Ready to Analyze</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Upload a clear image of a plant leaf to detect diseases. 
-                    Our AI model analyzes patterns to provide accurate diagnoses and treatment plans.
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                        {/* Chemical */}
+                        <div>
+                          <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" /> Chemical
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.treatments.chemical?.map((t, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-purple-200 pl-2">
+                                {t}
+                              </li>
+                            )) || <li className="text-sm text-muted-foreground">No chemical treatments listed.</li>}
+                          </ul>
+                        </div>
+
+                        {/* Prevention */}
+                        <div>
+                          <h4 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4" /> Prevention
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.prevention?.map((p, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
+                                {p}
+                              </li>
+                            )) || <li className="text-sm text-muted-foreground">No prevention tips listed.</li>}
+                          </ul>
+                        </div>
+
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/5">
+                <div className="w-24 h-24 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
+                  <Sprout className="w-12 h-12 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Ready to Analyze</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Upload a clear image of a plant leaf to detect diseases.
+                  Our AI model analyzes patterns to provide accurate diagnoses and treatment plans.
+                </p>
+              </div>
+            )}
           </div>
 
         </div>
