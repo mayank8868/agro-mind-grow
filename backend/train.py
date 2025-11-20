@@ -4,34 +4,40 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms, models
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import OneCycleLR
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFile
 from tqdm import tqdm
 import json
 from pathlib import Path
 import random
-import os
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Configuration
 class Config:
     # Data
     data_dir = "../datasets/plant_disease_recognition/train"
-    val_dir = "../datasets/plant_disease_recognition/validation"  # Add validation directory
+    val_dir = "../datasets/plant_disease_recognition/validation"
+    test_dir = "../datasets/plant_disease_recognition/test"
+    
+    # System
     num_workers = 4
+    pin_memory = True
     
     # Training
-    batch_size = 32
-    num_epochs = 50  # More epochs for better accuracy
-    learning_rate = 0.0003  # Lower learning rate for better convergence
+    batch_size = 16  # Reduced for RTX 3050 (4GB/6GB VRAM) with larger model
+    num_epochs = 30
+    learning_rate = 1e-3
     weight_decay = 1e-4
-    warmup_epochs = 3  # Learning rate warmup
-    early_stop_patience = 8  # More patience for better training
+    label_smoothing = 0.1
     
     # Model
-    model_name = 'efficientnet-b1'  # Better accuracy than b0
-    num_classes = 39  # Will be updated based on dataset
-    dropout = 0.3  # Higher dropout for better regularization
+    model_name = 'efficientnet_b2' # Good balance of speed/accuracy for RTX 3050
+    dropout = 0.4
     
     # Paths
     model_dir = "models"
@@ -39,13 +45,10 @@ class Config:
     class_to_idx_path = os.path.join(model_dir, "class_to_idx.json")
     
     # Augmentation
-    image_size = 240  # Slightly larger for better feature extraction
+    image_size = 260 # EfficientNet-B2 native resolution
     
     def __init__(self):
-        # Create model directory
         os.makedirs(self.model_dir, exist_ok=True)
-        
-        # Set device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Custom Dataset
@@ -54,16 +57,16 @@ class PlantDiseaseDataset(Dataset):
         self.data_dir = Path(data_dir)
         self.transform = transform
         
-        # Get class names and create mapping
+        # Get class names
         self.classes = sorted([d.name for d in self.data_dir.iterdir() if d.is_dir()])
         self.class_to_idx = {cls: i for i, cls in enumerate(self.classes)}
         
-        # Get all image paths and labels
+        # Get all images
         self.samples = []
         for class_name in self.classes:
             class_dir = self.data_dir / class_name
             for img_path in class_dir.glob('*.*'):
-                if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+                if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp']:
                     self.samples.append((str(img_path), self.class_to_idx[class_name]))
     
     def __len__(self):
@@ -71,285 +74,219 @@ class PlantDiseaseDataset(Dataset):
     
     def __getitem__(self, idx):
         img_path, label = self.samples[idx]
-        image = Image.open(img_path).convert('RGB')
-        
-        if self.transform:
-            image = self.transform(image)
-            
-        return image, label
+        try:
+            image = Image.open(img_path).convert('RGB')
+            if self.transform:
+                image = self.transform(image)
+            return image, label
+        except Exception as e:
+            print(f"Error loading image {img_path}: {e}")
+            # Return a random other image on error
+            return self.__getitem__(random.randint(0, len(self) - 1))
 
-# Data augmentation and transforms
+# Advanced Augmentation
 def get_transforms(train=True):
     if train:
         return transforms.Compose([
-            transforms.RandomResizedCrop(Config.image_size, scale=(0.7, 1.0)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(45),
-            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-            transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
-            transforms.ColorJitter(
-                brightness=0.2,
-                contrast=0.2,
-                saturation=0.2,
-                hue=0.1
-            ),
-            transforms.RandomGrayscale(p=0.1),
-            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+            transforms.Resize((Config.image_size + 32, Config.image_size + 32)),
+            transforms.RandomResizedCrop(Config.image_size, scale=(0.6, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(30),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
             transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-            transforms.RandomErasing(p=0.1, scale=(0.02, 0.1), ratio=(0.3, 3.3)),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.2, scale=(0.02, 0.2)),
         ])
     else:
         return transforms.Compose([
-            transforms.Resize(Config.image_size + 64),
-            transforms.CenterCrop(Config.image_size),
+            transforms.Resize((Config.image_size, Config.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            )
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
-# Model
+# Model Definition
 class PlantDiseaseModel(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, model_name='efficientnet_b2'):
         super(PlantDiseaseModel, self).__init__()
-        # Load pre-trained EfficientNet from torchvision
-        self.model = models.efficientnet_b1(weights='DEFAULT')
         
-        # Replace the classifier head with dropout
-        in_features = self.model.classifier[1].in_features
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(p=Config.dropout, inplace=True),
-            nn.Linear(in_features, num_classes)
+        # Load pretrained model
+        if model_name == 'efficientnet_b2':
+            self.backbone = models.efficientnet_b2(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity() # Remove original classifier
+        elif model_name == 'efficientnet_b0':
+            self.backbone = models.efficientnet_b0(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+            
+        # Custom Head
+        self.classifier = nn.Sequential(
+            nn.BatchNorm1d(in_features),
+            nn.Linear(in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(Config.dropout),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(Config.dropout / 2),
+            nn.Linear(256, num_classes)
         )
-        
-        # Initialize weights for the new head
-        for m in self.model.classifier.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
         
     def forward(self, x):
-        return self.model(x)
+        features = self.backbone(x)
+        return self.classifier(features)
 
-# Training function
-def train_model(model, dataloaders, criterion, optimizer, scheduler, num_epochs, device):
-    best_acc = 0.0
-    epochs_no_improve = 0
+def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scaler):
+    model.train()
+    running_loss = 0.0
+    correct = 0
+    total = 0
     
-    # Enable mixed precision training
-    scaler = torch.cuda.amp.GradScaler() if 'cuda' in str(device) else None
-    
-    for epoch in range(num_epochs):
-        print(f'\nEpoch {epoch+1}/{num_epochs}')
-        print('-' * 10)
+    pbar = tqdm(loader, desc="Training")
+    for images, labels in pbar:
+        images, labels = images.to(device), labels.to(device)
         
-        # Learning rate warmup
-        if epoch < Config.warmup_epochs:
-            lr_scale = (epoch + 1) / Config.warmup_epochs
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = Config.learning_rate * lr_scale
+        optimizer.zero_grad()
         
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
-                
-            running_loss = 0.0
-            running_corrects = 0
+        with torch.cuda.amp.autocast():
+            outputs = model(images)
+            loss = criterion(outputs, labels)
             
-            # Progress bar
-            pbar = tqdm(dataloaders[phase], desc=f'Epoch {epoch+1} {phase}')
-            
-            for inputs, labels in pbar:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-                
-                optimizer.zero_grad()
-                
-                with torch.set_grad_enabled(phase == 'train'):
-                    with torch.cuda.amp.autocast(enabled=scaler is not None):
-                        outputs = model(inputs)
-                        _, preds = torch.max(outputs, 1)
-                        loss = criterion(outputs, labels)
-                    
-                    if phase == 'train':
-                        if scaler:
-                            scaler.scale(loss).backward()
-                            # Gradient clipping
-                            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                            scaler.step(optimizer)
-                            scaler.update()
-                        else:
-                            loss.backward()
-                            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                            optimizer.step()
-                
-                # Statistics
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
-                
-                # Update progress bar
-                pbar.set_postfix({
-                    'loss': f"{running_loss / ((pbar.n + 1) * inputs.size(0)):.4f}",
-                    'acc': f"{100 * running_corrects.double() / ((pbar.n + 1) * inputs.size(0)):.2f}%"
-                })
-            
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
-            epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
-            
-            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-            
-            # Save best model
-            if phase == 'val':
-                if epoch_acc > best_acc:
-                    print(f'Validation accuracy improved from {best_acc:.4f} to {epoch_acc:.4f}. Saving model...')
-                    best_acc = epoch_acc
-                    torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        'loss': epoch_loss,
-                        'accuracy': epoch_acc,
-                    }, Config.model_path)
-                    epochs_no_improve = 0
-                else:
-                    epochs_no_improve += 1
-                    print(f'No improvement in validation accuracy for {epochs_no_improve} epochs')
-                    
-                    # Early stopping
-                    if epochs_no_improve >= Config.early_stop_patience:
-                        print(f'Early stopping triggered after {epoch+1} epochs')
-                        return model
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         
-        # Step the scheduler
-        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(epoch_loss)
-        else:
+        if scheduler is not None:
             scheduler.step()
+            
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        
+        pbar.set_postfix({'loss': running_loss/total, 'acc': 100.*correct/total})
+        
+    return running_loss / len(loader), 100. * correct / total
+
+@torch.no_grad()
+def validate(model, loader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
     
-    return model
+    for images, labels in tqdm(loader, desc="Validation"):
+        images, labels = images.to(device), labels.to(device)
+        
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        
+    return running_loss / len(loader), 100. * correct / total
 
 def main():
-    # Initialize config
     config = Config()
-    device = config.device
-    print(f'Using device: {device}')
+    print(f"Using device: {config.device}")
     
-    # Data loading - separate train and validation datasets
-    train_dataset = PlantDiseaseDataset(
-        config.data_dir,
-        transform=get_transforms(train=True)
-    )
+    # Datasets
+    print("Loading datasets...")
+    train_dataset = PlantDiseaseDataset(config.data_dir, get_transforms(train=True))
+    val_dataset = PlantDiseaseDataset(config.val_dir, get_transforms(train=False))
     
-    # Use separate validation dataset if available
-    if os.path.exists(config.val_dir):
-        val_dataset = PlantDiseaseDataset(
-            config.val_dir,
-            transform=get_transforms(train=False)
-        )
-        print(f'Using separate validation dataset with {len(val_dataset)} samples')
-    else:
-        # Fallback to splitting the training data
-        print('No separate validation directory found, splitting training data...')
-        train_size = int(0.9 * len(train_dataset))
-        val_size = len(train_dataset) - train_size
-        train_dataset, val_dataset = torch.utils.data.random_split(
-            train_dataset, [train_size, val_size]
-        )
+    print(f"Training samples: {len(train_dataset)}")
+    print(f"Validation samples: {len(val_dataset)}")
+    print(f"Number of classes: {len(train_dataset.classes)}")
     
-    # Update num_classes based on dataset
-    config.num_classes = len(train_dataset.classes)
-    print(f'Found {config.num_classes} classes: {train_dataset.classes}')
-    
-    # Create data loaders with weighted sampling for class imbalance
-    train_weights = [1.0 / len(train_dataset) for _ in range(len(train_dataset))]
-    train_sampler = torch.utils.data.WeightedRandomSampler(
-        train_weights, num_samples=len(train_weights), replacement=True
-    )
-    
-    dataloaders = {
-        'train': DataLoader(
-            train_dataset,
-            batch_size=config.batch_size,
-            sampler=train_sampler,
-            num_workers=config.num_workers,
-            pin_memory=True,
-            persistent_workers=True
-        ),
-        'val': DataLoader(
-            val_dataset,
-            batch_size=config.batch_size,
-            shuffle=False,
-            num_workers=config.num_workers,
-            pin_memory=True,
-            persistent_workers=True
-        )
-    }
-    
-    # Initialize model
-    model = PlantDiseaseModel(config.num_classes).to(device)
-    
-    # Print model summary
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'Model initialized with {total_params:,} trainable parameters')
-    
-    # Loss function with label smoothing
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    
-    # Optimizer with weight decay
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=config.learning_rate,
-        weight_decay=config.weight_decay,
-        eps=1e-8
-    )
-    
-    # Learning rate scheduler with warmup
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=config.learning_rate,
-        steps_per_epoch=len(dataloaders['train']),
-        epochs=config.num_epochs,
-        pct_start=0.1,
-        anneal_strategy='cos'
-    )
-    
-    # Train the model
-    print('Starting training...')
-    model = train_model(
-        model=model,
-        dataloaders=dataloaders,
-        criterion=criterion,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        num_epochs=config.num_epochs,
-        device=device
-    )
-    
-    # Save class to index mapping and class names
+    # Save class mapping immediately
     save_data = {
         'class_to_idx': train_dataset.class_to_idx,
         'classes': train_dataset.classes,
-        'model_name': config.model_name,
-        'image_size': config.image_size,
-        'normalize_mean': [0.485, 0.456, 0.406],
-        'normalize_std': [0.229, 0.224, 0.225]
+        'model_name': config.model_name
     }
-    
     with open(config.class_to_idx_path, 'w') as f:
         json.dump(save_data, f, indent=2)
+        
+    # Dataloaders
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=config.batch_size, 
+        shuffle=True, 
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory
+    )
     
-    print('\nTraining complete!')
-    print(f'Best model saved to: {os.path.abspath(config.model_path)}')
-    print(f'Class mapping saved to: {os.path.abspath(config.class_to_idx_path)}')
+    val_loader = DataLoader(
+        val_dataset, 
+        batch_size=config.batch_size, 
+        shuffle=False, 
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory
+    )
+    
+    # Model Setup
+    model = PlantDiseaseModel(len(train_dataset.classes), config.model_name).to(config.device)
+    
+    # Training Setup
+    criterion = nn.CrossEntropyLoss(label_smoothing=config.label_smoothing)
+    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    
+    # Scheduler
+    scheduler = OneCycleLR(
+        optimizer,
+        max_lr=config.learning_rate,
+        epochs=config.num_epochs,
+        steps_per_epoch=len(train_loader),
+        pct_start=0.1,
+        div_factor=25.0,
+        final_div_factor=1000.0
+    )
+    
+    scaler = torch.cuda.amp.GradScaler()
+    
+    # Training Loop
+    best_acc = 0.0
+    patience = 7
+    counter = 0
+    
+    print("\nStarting training...")
+    for epoch in range(config.num_epochs):
+        print(f"\nEpoch {epoch+1}/{config.num_epochs}")
+        
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, scheduler, config.device, scaler
+        )
+        
+        val_loss, val_acc = validate(model, val_loader, criterion, config.device)
+        
+        print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")
+        print(f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+        
+        # Save best model
+        if val_acc > best_acc:
+            print(f"New best model! ({best_acc:.2f}% -> {val_acc:.2f}%)")
+            best_acc = val_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'accuracy': best_acc,
+                'class_to_idx': train_dataset.class_to_idx
+            }, config.model_path)
+            counter = 0
+        else:
+            counter += 1
+            print(f"No improvement for {counter} epochs")
+            
+        if counter >= patience:
+            print("Early stopping triggered!")
+            break
+            
+    print("Training complete!")
 
 if __name__ == "__main__":
     main()

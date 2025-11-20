@@ -2,14 +2,44 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import torch
-from torchvision import transforms
+import torch.nn as nn
+from torchvision import transforms, models
 from PIL import Image
 import io
 import json
 import os
 from pathlib import Path
-from train import PlantDiseaseModel, Config
 from disease_database import get_disease_info
+import numpy as np
+
+# Define Model Architecture (Must match train.py)
+class PlantDiseaseModel(nn.Module):
+    def __init__(self, num_classes, model_name='efficientnet_b2'):
+        super(PlantDiseaseModel, self).__init__()
+        
+        if model_name == 'efficientnet_b2':
+            self.backbone = models.efficientnet_b2(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+        elif model_name == 'efficientnet_b0':
+            self.backbone = models.efficientnet_b0(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+            
+        self.classifier = nn.Sequential(
+            nn.BatchNorm1d(in_features),
+            nn.Linear(in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.4),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, num_classes)
+        )
+        
+    def forward(self, x):
+        features = self.backbone(x)
+        return self.classifier(features)
 
 app = FastAPI()
 
@@ -22,275 +52,190 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load model and class mapping
-model_path = os.path.join("models", "best_model.pth")
-class_to_idx_path = os.path.join("models", "class_to_idx.json")
+# Configuration
+MODEL_DIR = "models"
+MODEL_PATH = os.path.join(MODEL_DIR, "best_model.pth")
+CLASS_MAP_PATH = os.path.join(MODEL_DIR, "class_to_idx.json")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load class to index mapping
-with open(class_to_idx_path, 'r') as f:
-    data = json.load(f)
-    # Handle both old and new format
-    if isinstance(data, dict) and 'class_to_idx' in data:
-        class_to_idx = data['class_to_idx']
-    else:
-        class_to_idx = data
-    idx_to_class = {v: k for k, v in class_to_idx.items()}
+# Global variables
+model = None
+class_to_idx = {}
+idx_to_class = {}
 
-# Initialize model
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = PlantDiseaseModel(num_classes=len(class_to_idx))
+def load_model():
+    global model, class_to_idx, idx_to_class
+    
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(CLASS_MAP_PATH):
+        print("Model or class mapping not found. Please train the model first.")
+        return
 
-# Load model weights (handle both old and new format)
-checkpoint = torch.load(model_path, map_location=device)
-if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-    model.load_state_dict(checkpoint['model_state_dict'])
-else:
-    model.load_state_dict(checkpoint)
+    try:
+        # Load class mapping
+        with open(CLASS_MAP_PATH, 'r') as f:
+            data = json.load(f)
+            if 'class_to_idx' in data:
+                class_to_idx = data['class_to_idx']
+                model_name = data.get('model_name', 'efficientnet_b2')
+            else:
+                class_to_idx = data
+                model_name = 'efficientnet_b2'
+            
+            idx_to_class = {v: k for k, v in class_to_idx.items()}
 
-model = model.to(device)
-model.eval()
-print(f"Model loaded successfully with {len(class_to_idx)} classes")
+        # Initialize model
+        model = PlantDiseaseModel(len(class_to_idx), model_name=model_name)
+        
+        # Load weights
+        checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            model.load_state_dict(checkpoint)
+            
+        model = model.to(DEVICE)
+        model.eval()
+        print(f"Model loaded successfully: {model_name} with {len(class_to_idx)} classes")
+        
+    except Exception as e:
+        print(f"Error loading model: {e}")
 
-# Image transformations (match training config)
+# Load model on startup
+load_model()
+
+# Preprocessing
 preprocess = transforms.Compose([
-    transforms.Resize(272),
-    transforms.CenterCrop(240),
+    transforms.Resize((260, 260)), # Match training size
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Test Time Augmentation transforms
-tta_transforms = [
-    transforms.Compose([
-        transforms.Resize(272),
-        transforms.CenterCrop(240),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ]),
-    transforms.Compose([
-        transforms.Resize(272),
-        transforms.CenterCrop(240),
-        transforms.RandomHorizontalFlip(p=1.0),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ]),
-    transforms.Compose([
-        transforms.Resize(272),
-        transforms.CenterCrop(240),
-        transforms.RandomRotation(degrees=(10, 10)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ]),
-]
-
-def is_plant_image(image: Image.Image) -> bool:
-    """Check if the image contains plant-like features."""
-    # Convert to RGB if not already
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
-    
-    # Resize for faster processing
-    img_small = image.resize((100, 100))
-    pixels = list(img_small.getdata())
-    
-    green_pixels = 0
-    brown_pixels = 0
-    total_pixels = len(pixels)
-    
-    for r, g, b in pixels:
-        # Count green-dominant pixels (leaves)
-        if g > r + 15 and g > b + 15:
-            green_pixels += 1
-        # Count brown/yellow pixels (diseased leaves, fruits)
-        elif (r > 100 and g > 80 and b < 100) or (r > 120 and g > 100 and b < 80):
-            brown_pixels += 1
-    
-    # If more than 8% of pixels are green or brown, likely a plant
-    plant_ratio = (green_pixels + brown_pixels) / total_pixels
-    return plant_ratio > 0.08
-
-# Generic status detector when specific crop-disease classes are missing
-def detect_generic_status(image: Image.Image, plant_type: str):
-    """Return a generic disease status for the given plant type based on simple
-    color heuristics. This is a fallback used when no model predictions match the
-    selected crop class (e.g., Blueberry where only healthy exists in dataset).
-
-    Returns: (label: str, confidence: float)
+def is_valid_image(image: Image.Image) -> bool:
+    """
+    Robust check for valid plant images using color analysis and edge density.
     """
     if image.mode != 'RGB':
         image = image.convert('RGB')
-
+    
+    # Resize for analysis
     img_small = image.resize((100, 100))
-    pixels = list(img_small.getdata())
-
-    total = len(pixels)
-    green = yellow = brown = black = white = 0
-    for r, g, b in pixels:
-        if g > r + 15 and g > b + 15:
-            green += 1
-        elif r > 170 and g > 170 and b < 120:
-            yellow += 1
-        elif 80 < r < 160 and 60 < g < 140 and b < 110:
-            brown += 1
-        elif r < 50 and g < 50 and b < 50:
-            black += 1
-        elif r > 220 and g > 220 and b > 220:
-            white += 1
-
-    # Ratios
-    gr = green / total
-    yr = yellow / total
-    br = brown / total
-    blr = black / total
-    wr = white / total
-
-    # Heuristic rules - Check for healthy first
-    # Predominantly green with low lesions -> likely healthy
-    if gr > 0.40 and (br + blr) < 0.15 and yr < 0.15:
-        return (f"{plant_type.title()} - Healthy", min(round(gr * 120, 1), 85.0))
+    pixels = np.array(img_small)
     
-    # Low disease indicators overall -> likely healthy (for fruits with other colors)
-    if (br + blr + yr + wr) < 0.20 and (br + blr) < 0.10:
-        return (f"{plant_type.title()} - Healthy", 75.0)
+    # 1. Color Analysis
+    r, g, b = pixels[:,:,0], pixels[:,:,1], pixels[:,:,2]
     
-    # High dark/brown areas -> fungal fruit rot/anthracnose-like
-    if (br + blr) > 0.20:
-        return (f"{plant_type.title()} - Possible fungal fruit rot", min(85.0, round((br + blr) * 300, 1)))
+    # Green dominance (healthy plants)
+    green_mask = (g > r) & (g > b)
     
-    # High yellowing -> chlorosis/nutrient stress or virus-like
-    if yr > 0.20:
-        return (f"{plant_type.title()} - Possible chlorosis (nutrient stress)", min(80.0, round(yr * 250, 1)))
+    # Brown/Yellow dominance (diseased plants, soil)
+    brown_mask = (r > b) & (g > b) & (r > 50)
     
-    # Powdery white coverage -> powdery mildew-like
-    if wr > 0.15:
-        return (f"{plant_type.title()} - Possible powdery mildew", min(80.0, round(wr * 300, 1)))
-
-    # If no clear disease signs, assume healthy
-    return (f"{plant_type.title()} - Healthy", 70.0)
+    # Calculate ratios
+    total_pixels = pixels.shape[0] * pixels.shape[1]
+    green_ratio = np.sum(green_mask) / total_pixels
+    brown_ratio = np.sum(brown_mask) / total_pixels
+    plant_ratio = green_ratio + brown_ratio
+    
+    # 2. Variance/Texture Analysis (Plants have texture, solid colors don't)
+    variance = np.var(pixels)
+    
+    # Thresholds
+    if variance < 500: # Too uniform (solid color, blurry)
+        return False
+        
+    if plant_ratio < 0.15: # Not enough plant-like colors
+        return False
+        
+    return True
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...), plant_type: str = None):
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded. Please train the model first.")
+        
     try:
-        # Read and preprocess the image
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert('RGB')
-        image_tensor = preprocess(image).unsqueeze(0).to(device)
         
-        # Check if image is likely a plant
-        if not is_plant_image(image):
+        # 1. Validate Image
+        if not is_valid_image(image):
             return {
                 "class": "invalid_image",
                 "confidence": 0,
-                "message": "The uploaded image does not appear to be a plant, leaf, or fruit. Please upload a clear image of a plant part."
+                "message": "The image does not appear to be a plant. Please upload a clear photo of a leaf or plant."
             }
+            
+        # 2. Preprocess
+        input_tensor = preprocess(image).unsqueeze(0).to(DEVICE)
         
-        # Make prediction with Test Time Augmentation (TTA)
+        # 3. Inference
         with torch.no_grad():
-            # Apply multiple augmentations and average predictions
-            all_probs = []
-            for tta_transform in tta_transforms:
-                aug_tensor = tta_transform(image).unsqueeze(0).to(device)
-                outputs = model(aug_tensor)
-                probs = torch.nn.functional.softmax(outputs, dim=1)[0]
-                all_probs.append(probs)
+            outputs = model(input_tensor)
+            probs = torch.nn.functional.softmax(outputs, dim=1)
             
-            # Average probabilities from all augmentations
-            avg_probs = torch.stack(all_probs).mean(dim=0)
+            # Get top predictions
+            top_probs, top_indices = torch.topk(probs, 5)
             
-            # Get top 5 predictions for better analysis
-            top5_prob, top5_idx = torch.topk(avg_probs, min(5, len(avg_probs)))
-            
-            # AGGRESSIVE confidence boost - model outputs are extremely low
-            # Use exponential scaling to make predictions usable
-            raw_conf = top5_prob[0].item()
-            if raw_conf < 0.01:  # Less than 1%
-                confidence = min(raw_conf * 100 * 50, 85.0)  # Boost 50x, cap at 85%
-            elif raw_conf < 0.05:  # Less than 5%
-                confidence = min(raw_conf * 100 * 20, 90.0)  # Boost 20x, cap at 90%
-            else:
-                confidence = min(raw_conf * 100 * 1.5, 95.0)  # Normal boost
-            
-            predicted_class = idx_to_class[top5_idx[0].item()]
-            
-            # Get top 3 predictions for display (with aggressive boost)
-            top3_predictions = []
-            for i in range(min(3, len(top5_prob))):
-                raw = top5_prob[i].item()
-                if raw < 0.01:
-                    boosted = min(raw * 100 * 50, 85.0 - i * 10)
-                elif raw < 0.05:
-                    boosted = min(raw * 100 * 20, 90.0 - i * 10)
-                else:
-                    boosted = min(raw * 100 * 1.5, 95.0 - i * 5)
+            top_predictions = []
+            for i in range(5):
+                idx = top_indices[0][i].item()
+                prob = top_probs[0][i].item() * 100
+                class_name = idx_to_class[idx]
                 
-                top3_predictions.append({
-                    "class": idx_to_class[top5_idx[i].item()],
-                    "confidence": round(boosted, 2)
+                top_predictions.append({
+                    "class": class_name,
+                    "confidence": round(prob, 2)
                 })
         
-        # Filter predictions based on selected plant type
+        # 4. Filter by plant type if specified
+        best_prediction = top_predictions[0]
+        
         if plant_type:
-            plant_type_lower = plant_type.lower()
-            # Filter predictions to only include those matching the plant type
-            filtered_predictions = []
-            for pred in top3_predictions:
-                pred_class = pred["class"].lower()
-                if plant_type_lower in pred_class:
-                    filtered_predictions.append(pred)
-            
-            if filtered_predictions:
-                # Use the best matching prediction
-                predicted_class = filtered_predictions[0]["class"]
-                confidence = filtered_predictions[0]["confidence"]
-                top3_predictions = filtered_predictions
-            else:
-                # No matching predictions. Use generic status detector
-                generic_label, generic_conf = detect_generic_status(image, plant_type)
-                predicted_class = generic_label
-                confidence = generic_conf
-                top3_predictions = [
-                    {"class": predicted_class, "confidence": confidence}
-                ]
+            plant_type = plant_type.lower()
+            filtered = [p for p in top_predictions if plant_type in p['class'].lower()]
+            if filtered:
+                best_prediction = filtered[0]
+                # Adjust confidence if we filtered
+                if best_prediction != top_predictions[0]:
+                    best_prediction['confidence'] = min(best_prediction['confidence'] * 1.2, 99.9) # Boost slightly if it matches user intent
         
-        # Adaptive confidence threshold based on top predictions spread
-        confidence_gap = (top5_prob[0].item() - top5_prob[1].item()) * 100
+        # 5. Construct Response
+        predicted_class = best_prediction['class']
+        confidence = best_prediction['confidence']
         
-        # Determine reliability and message
-        message = None
-        reliability = "high"
-        
-        if confidence < 50.0:
-            message = f"⚠️ Low confidence ({confidence:.1f}%). The model is uncertain. Check all 3 predictions below."
-            reliability = "low"
-        elif confidence < 70.0:
-            message = f"⚡ Moderate confidence ({confidence:.1f}%). Review the top 3 predictions to verify."
-            reliability = "medium"
-        elif confidence_gap < 10.0:
-            message = f"📊 Top predictions are very close. Consider multiple options."
-            reliability = "medium"
-        elif confidence >= 85.0 and confidence_gap >= 15.0:
-            message = f"✅ High confidence ({confidence:.1f}%). This prediction is likely correct."
-            reliability = "high"
-            
-        # Get disease-specific information
+        # Get disease info
         disease_info = get_disease_info(predicted_class)
         
+        # Determine status message
+        if confidence < 40:
+            message = "⚠️ Low confidence. The model is unsure. Please ensure the image is clear and focused on the leaf."
+        elif confidence < 70:
+            message = "⚡ Moderate confidence. Verify the symptoms with the description below."
+        else:
+            message = "✅ High confidence prediction."
+
         return {
             "class": predicted_class,
-            "confidence": round(confidence, 2),
-            "top3_predictions": top3_predictions,
+            "confidence": confidence,
+            "top3_predictions": top_predictions[:3],
             "message": message,
-            "symptoms": disease_info["symptoms"],
-            "causes": disease_info["causes"],
-            "treatments": disease_info["treatments"]
+            "symptoms": disease_info.get("symptoms", []),
+            "causes": disease_info.get("causes", []),
+            "treatments": disease_info.get("treatments", {}),
+            "prevention": disease_info.get("treatments", {}).get("prevention", [])
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"Prediction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "model_loaded": model is not None,
+        "device": str(DEVICE)
+    }
 
 if __name__ == "__main__":
     import uvicorn
