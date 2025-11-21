@@ -20,6 +20,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 # Configuration
 class Config:
     # Data
+    
     data_dir = "../datasets/plant_disease_recognition/train"
     val_dir = "../datasets/plant_disease_recognition/validation"
     test_dir = "../datasets/plant_disease_recognition/test"
@@ -29,7 +30,7 @@ class Config:
     pin_memory = True
     
     # Training
-    batch_size = 16  # Reduced for RTX 3050 (4GB/6GB VRAM) with larger model
+    batch_size = 64  # Reduced for RTX 3050 (4GB/6GB VRAM) with larger model
     num_epochs = 30
     learning_rate = 1e-3
     weight_decay = 1e-4
