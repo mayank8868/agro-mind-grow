@@ -1,281 +1,188 @@
-# 🌾 AgroMind Grow - Smart Agriculture Platform
+# AgroMind Grow
 
-[![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.4.19-646CFF.svg)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+AgroMind Grow is a comprehensive smart agriculture platform designed to empower farmers with AI-driven insights, real-time data, and expert guidance. From detecting plant diseases with high precision to providing market prices and weather forecasts, AgroMind Grow serves as an all-in-one digital farming assistant.
 
-> **Transforming agriculture through intelligent technology - Empowering farmers with comprehensive tools for weather intelligence, market analytics, crop management, and AI-powered agricultural insights.**
+## Key Features
 
-## 🚀 Overview
+### 1. AI Disease Prediction (Plant Doctor)
+*   **Instant Diagnosis**: Upload a photo of a plant leaf, and our advanced AI model identifies diseases with high accuracy.
+*   **Smart Validation**: The system intelligently detects if an uploaded image is not a plant (e.g., random objects, people) and rejects it to prevent false diagnoses. It uses a combination of color analysis and confidence scoring to ensure validity.
+*   **Comprehensive Reports**: Get detailed breakdowns of Symptoms, Causes, and Treatments (Organic, Chemical, and Prevention tips).
+*   **Healthy Rescue**: If the model is unsure but the plant looks healthy, it intelligently reassesses to avoid false alarms.
 
-AgroMind Grow is a revolutionary web-based smart agriculture platform designed to address the critical challenges faced by modern farmers. With climate uncertainty, market volatility, and limited access to agricultural expertise affecting 600+ million farmers worldwide, our platform democratizes access to advanced agricultural tools through a comprehensive, user-friendly interface.
+### 2. Smart Dashboard
+A centralized hub giving you a quick overview of your farm's status, weather alerts, and quick access to all tools.
 
-### 🎯 Key Impact Metrics
-- **25% increase** in farmer income through optimized decisions
-- **40% reduction** in operational costs via efficient resource management
-- **50% improvement** in risk mitigation through predictive analytics
-- **99.74% accuracy** in AI-powered plant disease detection (EfficientNet-B1)
-- **38 disease classes** covering major crops (Apple, Tomato, Corn, Potato, Grape, etc.)
+### 3. Weather Forecast
+Real-time weather updates and forecasts to help you plan your farming activities effectively.
 
-## ✨ Features
+### 4. Market Prices
+Stay updated with the latest market prices for various crops to maximize your profits.
 
-### 🌤️ Weather Intelligence
-- Real-time weather monitoring with agricultural-specific metrics
-- 7-day forecasts with hourly breakdowns
-- Weather-based irrigation and planting recommendations
-- Severe weather alerts and notifications
+### 5. Crop Calendar
+Personalized farming schedules and timelines to ensure you plant and harvest at the perfect time.
 
-### 💰 Market Intelligence
-- Live commodity prices from multiple markets
-- Historical price trends and pattern analysis
-- Optimal selling time recommendations
-- Market demand-supply analytics
+### 6. Planning & Consultation
+Access expert advice and planning tools to optimize your farm's yield and sustainability.
 
-### 🌱 Crop Management
-- Intelligent crop calendar with seasonal planning
-- Growth stage tracking with visual indicators
-- Automated task scheduling and reminders
-- Yield prediction and optimization
+### 7. Knowledge Base
+A rich library of farming guides, articles, and best practices.
 
-### 🐛 AI-Powered Plant Disease Detection
-- **Deep Learning Model**: EfficientNet-B1 with 99.74% validation accuracy
-- **38 Disease Classes**: Covers major crops (Apple, Tomato, Corn, Potato, Grape, etc.)
-- **Crop-Specific Filtering**: Select plant type for accurate disease identification
-- **Comprehensive Information**: Disease-specific symptoms, causes, and treatments
-- **Smart Detection**: Test Time Augmentation (TTA) for robust predictions
-- **Treatment Recommendations**: Chemical, organic, and prevention methods
-- **Fallback Detection**: Generic disease detection for unknown cases
+## Technical Stack
 
-### 🚜 Equipment Management
-- Equipment inventory tracking and maintenance scheduling
-- Performance monitoring and efficiency analysis
-- Cost tracking and ROI calculations
-- Spare parts availability assistance
+### Frontend
+*   **Framework**: React (v18) with TypeScript
+*   **Build Tool**: Vite for high-performance development and building.
+*   **Styling**: Tailwind CSS for modern, responsive design.
+*   **UI Components**: Shadcn UI for accessible and consistent components.
+*   **Icons**: Lucide React.
+*   **Charts**: Recharts for data visualization.
 
-### 👨‍🌾 Expert Consultation
-- Video calls with certified agricultural experts
-- Chat support for quick queries
-- Specialized consultations (soil, crops, livestock)
-- Community forums and peer discussions
+### Backend
+*   **Framework**: FastAPI for high-performance API endpoints.
+*   **Machine Learning**: PyTorch & Torchvision.
+*   **Image Processing**: Pillow (PIL) and NumPy.
 
-### 🗺️ Farm Planning
-- Interactive farm mapping and land visualization
-- Resource allocation and budget planning
-- Risk assessment and management tools
-- Performance analytics and comparative analysis
+## The AI Model
 
-### 🏛️ Government Schemes
-- Comprehensive database of agricultural subsidies
-- Eligibility checker and application assistance
-- Document management and status tracking
-- Streamlined application processes
+Our disease prediction engine is built on a state-of-the-art Deep Learning architecture.
 
-### 📚 Knowledge Base
-- Educational resources and best practices library
-- Community-driven knowledge sharing
-- Case studies and success stories
-- Multi-language support
+*   **Architecture**: EfficientNet-B2 (Transfer Learning). We chose B2 for its excellent balance between accuracy and inference speed, making it suitable for real-time applications.
+*   **Training**:
+    *   **Epochs**: 30 (with Early Stopping to prevent overfitting).
+    *   **Optimizer**: AdamW with OneCycleLR scheduler for optimal convergence.
+    *   **Loss Function**: CrossEntropyLoss with Label Smoothing to improve generalization.
+    *   **Augmentations**: We use advanced techniques like RandomResizedCrop, ColorJitter, RandomRotation, and RandomErasing to make the model robust against different lighting and angles.
+*   **Dataset**: Trained on a comprehensive dataset covering 38 classes of healthy and diseased plants.
 
-### 📊 Integrated Dashboard
-- Centralized control center with real-time data
-- Customizable widgets and notifications
-- Quick access navigation to all modules
-- Personalized recommendations
-
-## 🛠️ Technology Stack
-
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Frontend** | React 18 + TypeScript | User interface and type safety |
-| **UI Library** | shadcn-ui + Tailwind CSS | Modern components and styling |
-| **Build Tool** | Vite | Fast development and deployment |
-| **State Management** | React Query | Data fetching and caching |
-| **Routing** | React Router | Navigation and page management |
-| **Backend API** | Python + FastAPI | RESTful API server |
-| **Deep Learning** | PyTorch + EfficientNet-B1 | Plant disease detection (99.74% accuracy) |
-| **Image Processing** | Torchvision + PIL | Image preprocessing and augmentation |
-| **Model Training** | Transfer Learning | Pre-trained EfficientNet fine-tuned on PlantVillage |
-| **Disease Database** | Custom Python Module | 38 disease classes with detailed information |
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js** (v18 or higher)
-- **Python** (3.8 or higher)
-- **npm** or yarn package manager
-- **CUDA** (optional, for GPU acceleration during training)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/mayank8868/agro-mind-grow.git
-   cd agro-mind-grow
-   ```
-
-2. **Install Frontend Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Setup Backend**
-   ```bash
-   cd backend
-   python -m venv venv
-   .\venv\Scripts\activate  # On Windows
-   # source venv/bin/activate  # On Linux/Mac
-   pip install -r requirements.txt
-   ```
-
-### Running the Application
-
-**Step 1: Start Backend API**
-```powershell
-cd backend
-.\venv\Scripts\activate
-python api.py
-```
-Backend runs on: `http://localhost:8000`
-
-**Step 2: Start Frontend** (in a new terminal)
-```bash
-cd agro-mind-grow
-.\start.bat
-```
-Frontend runs on: `http://localhost:5173`
-
-### Using the Plant Disease Detection
-
-1. Open browser and navigate to `http://localhost:5173/pest-control`
-2. **Select Plant Type** from dropdown (Apple, Tomato, Corn, Potato, etc.)
-3. **Upload Image** of the plant/leaf
-4. **View Results** with disease name, confidence, symptoms, causes, and treatments
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 agro-mind-grow/
-├── backend/                      # Backend API and ML Model
-│   ├── api.py                   # FastAPI server for disease detection
-│   ├── train.py                 # Model training script
-│   ├── disease_database.py      # Disease information database (38 classes)
-│   ├── models/
-│   │   ├── best_model.pth       # Trained EfficientNet-B1 model (99.74% accuracy)
-│   │   └── class_to_idx.json    # Class mapping and model metadata
-│   ├── datasets/                # Training dataset (PlantVillage)
-│   │   ├── train/               # Training images (38 disease classes)
-│   │   └── validation/          # Validation images
-│   ├── venv/                    # Python virtual environment
-│   └── requirements.txt         # Python dependencies
-│
-├── src/                         # Frontend Source Code
-│   ├── components/              # Reusable UI components
-│   │   ├── ui/                  # shadcn-ui components
-│   │   └── Navigation.tsx       # Main navigation
-│   ├── hooks/                   # Custom React hooks
-│   ├── lib/                     # Utility functions and data
-│   ├── pages/                   # Application pages
-│   │   ├── Index.tsx            # Dashboard
-│   │   ├── Weather.tsx          # Weather module
-│   │   ├── MarketPrices.tsx     # Market intelligence
-│   │   ├── CropCalendar.tsx     # Crop management
-│   │   ├── PestControl.tsx      # AI Disease Detection ⭐
-│   │   ├── Equipment.tsx        # Equipment management
-│   │   ├── ExpertConsultation.tsx
-│   │   ├── FarmPlanning.tsx
-│   │   ├── GovernmentSchemes.tsx
-│   │   └── KnowledgeBase.tsx
-│   ├── App.tsx                  # Main app component
-│   └── main.tsx                 # Entry point
-│
-├── public/                      # Static assets
-│   ├── equipment.json           # Equipment data
-│   └── favicon.svg              # App favicon
-│
-├── local-node/                  # Local Node.js installation
-├── start.bat                    # Frontend startup script
-├── package.json                 # Frontend dependencies
-├── HOW_TO_START.md             # Detailed startup guide
-└── README.md                    # This file
+├── src/
+│   ├── components/
+│   │   ├── ui/                 # Reusable UI components (Button, Card, etc.)
+│   │   └── Navigation.tsx      # Main navigation bar
+│   ├── pages/
+│   │   ├── CropCalendar.tsx
+│   │   ├── Equipment.tsx
+│   │   ├── Index.tsx           # Dashboard
+│   │   ├── KnowledgeBase.tsx
+│   │   ├── MarketPrices.tsx
+│   │   ├── NotFound.tsx
+│   │   ├── PestControl.tsx     # Disease Prediction Logic & UI
+│   │   ├── PlanningConsultation.tsx
+│   │   └── Weather.tsx
+│   ├── App.tsx                 # Main App component
+│   ├── main.tsx                # Entry point
+│   └── index.css               # Global styles (Tailwind)
+├── backend/
+│   ├── models/                 # Saved model weights
+│   ├── api.py                  # FastAPI application & Inference logic
+│   ├── train.py                # Model training script
+│   ├── disease_database.py     # Database of symptoms/treatments
+│   └── requirements.txt        # Python dependencies
+├── public/                     # Static assets
+├── index.html                  # HTML entry point
+├── package.json                # Frontend dependencies
+├── tsconfig.json               # TypeScript configuration
+└── vite.config.ts              # Vite configuration
 ```
 
-### Key Files Explained
+## Getting Started
 
-**Backend:**
-- `api.py` - Main API server with disease detection endpoint
-- `disease_database.py` - Complete disease information for all 38 classes
-- `train.py` - EfficientNet-B1 training script with data augmentation
-- `best_model.pth` - Trained model weights (99.74% validation accuracy)
+Follow these steps to set up and run the project locally.
 
-**Frontend:**
-- `PestControl.tsx` - Disease detection interface with crop selection
-- `Navigation.tsx` - Main navigation with all modules
-- `start.bat` - Quick startup script for frontend
+### Prerequisites
+*   Node.js (v16+)
+*   Python (v3.8+)
+*   Git
+*   CUDA-enabled GPU (Optional, but recommended for training)
 
-## 🎯 Use Cases
+### 1. Clone the Repository
 
-### 1. Weather-Based Crop Planning
-**Scenario:** Farmer needs to decide optimal planting time based on weather predictions.
-**Outcome:** 25% reduction in crop failure, 30% water savings, 15% yield increase.
+Open your terminal and run the following command to clone the project:
 
-### 2. AI Plant Disease Detection
-**Scenario:** Farmer uploads plant image for instant disease diagnosis.
-**Outcome:** 40% crop loss prevention, 35% reduced pesticide use, $200-500 savings per acre.
+```bash
+git clone https://github.com/mayank8868/agro-mind-grow.git
+cd agro-mind-grow
+```
 
-### 3. Market-Driven Selling
-**Scenario:** System predicts optimal selling time for maximum profit.
-**Outcome:** 20% price increase, ₹15,000-25,000 additional income per cycle.
+### 2. Backend Setup
 
-### 4. Crop Recommendation System
-**Scenario:** AI recommends optimal crops based on soil and market conditions.
-**Outcome:** 30% profitability increase, better diversification, improved soil health.
+Navigate to the project directory and set up the Python environment.
 
-## 🔮 Future Enhancements
+**Create and Activate Virtual Environment:**
 
-- **Satellite Imagery Integration**: Large-scale crop monitoring via NASA/ESA satellites
-- **IoT Sensor Networks**: Real-time soil and environmental monitoring
-- **Drone Integration**: Automated field surveys and crop health assessment
-- **Blockchain Supply Chain**: Transparent tracking from farm to consumer
-- **AR Plant Recognition**: Augmented reality for instant plant identification
-- **Voice Assistants**: Hands-free operation for field use
+```powershell
+# Windows (PowerShell)
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate
+```
 
-## 📈 Market Impact
+**Install Dependencies:**
 
-- **Target Market**: 600+ million small to medium-scale farmers globally
-- **Market Size**: $12 billion agricultural technology sector
-- **Growth Potential**: 15% annual growth in agtech adoption
-- **Social Impact**: Contributing to global food security and sustainable farming
+```powershell
+pip install -r requirements.txt
+```
 
-## 🤝 Contributing
+**Start the Backend Server:**
 
-We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to submit pull requests, report issues, and contribute to the project.
+Make sure your virtual environment is activated, then run:
 
-### Development Setup
+```powershell
+python api.py
+```
+The API will start at `http://localhost:8000`.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+*(Optional) Train the Model:*
+If you wish to retrain the model:
+```powershell
+python train.py
+```
 
-## 🙏 Acknowledgments
+### 3. Frontend Setup
 
-- **Farmers Community** - For providing valuable feedback and insights
-- **Agricultural Experts** - For domain knowledge and validation
-- **Open Source Community** - For the amazing tools and libraries
-- **React Team** - For the excellent frontend framework
-- **Vite Team** - For the lightning-fast build tool
+Open a new terminal window (keep the backend running) and navigate to the project root.
 
-## 🌟 Show Your Support
+**Install Dependencies:**
 
-If you find this project helpful, please consider:
-- ⭐ Starring the repository
-- 🐛 Reporting bugs and issues
-- 💡 Suggesting new features
-- 🤝 Contributing to the codebase
-- 📢 Sharing with the community
+```powershell
+npm install
+```
+
+**Start the Application:**
+
+You can use the provided batch script for a quick start:
+
+```powershell
+.\start.bat
+```
+
+Or run the standard npm command:
+
+```powershell
+npm run dev
+```
+
+The application will be available at `http://localhost:8080`.
+
+## How It Works
+
+1.  **User Action**: You drag & drop a plant image onto the Disease Prediction page.
+2.  **Frontend**: The React app validates the file type and sends it to the backend API.
+3.  **Backend Validation**:
+    *   **Color Check**: The API analyzes the image pixels. If it doesn't contain enough "plant colors" (green/brown) or has too much blue (sky/jeans), it's rejected.
+    *   **Confidence Check**: The AI predicts the disease. If the confidence score is below 50%, the image is rejected as "unclear/invalid".
+4.  **Prediction**: If valid, the model identifies the specific disease (or healthy status).
+5.  **Response**: The backend retrieves detailed treatment info from `disease_database.py` and sends it back.
+6.  **Display**: The frontend renders a detailed report with the diagnosis, confidence score, and actionable advice.
+
+## Contribution
+
+Feel free to fork this repository and submit pull requests. We welcome improvements to the dataset, model architecture, or UI!
 
 ---
 
-**AgroMind Grow** - *Where Technology Meets Agriculture, Where Innovation Meets Tradition, Where Farmers Meet Success.*
+**Built for Farmers.**

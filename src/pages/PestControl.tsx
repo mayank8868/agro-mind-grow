@@ -49,6 +49,7 @@ const PestControl = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiseaseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +83,7 @@ const PestControl = () => {
     const objectUrl = URL.createObjectURL(selectedFile);
     setPreview(objectUrl);
     setResult(null);
+    setError(null);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -108,6 +110,7 @@ const PestControl = () => {
     setFile(null);
     setPreview(null);
     setResult(null);
+    setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -115,6 +118,7 @@ const PestControl = () => {
     if (!file) return;
 
     setLoading(true);
+    setError(null);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -132,11 +136,7 @@ const PestControl = () => {
       }
 
       if (data.class === "invalid_image") {
-        toast({
-          title: "Invalid Image Detected",
-          description: data.message,
-          variant: "destructive",
-        });
+        setError(data.message);
         setResult(null);
       } else {
         setResult(data);
@@ -266,7 +266,28 @@ const PestControl = () => {
 
           {/* Right Column: Results */}
           <div className="lg:col-span-2">
-            {result ? (
+            {error ? (
+              <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <AlertTriangle className="w-6 h-6" />
+                    Invalid Image Detected
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-red-600 dark:text-red-300">
+                    {error}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:text-red-400"
+                    onClick={clearSelection}
+                  >
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : result ? (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Main Diagnosis Card */}
                 <Card className={`border-l-4 shadow-md ${result.class.toLowerCase().includes("healthy")

@@ -1,11 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Cloud, 
-  TrendingUp, 
-  Calendar, 
-  Bug, 
-  Wrench, 
-  Users, 
+import {
+  Cloud,
+  TrendingUp,
+  Calendar,
+  Bug,
+  Wrench,
+  Users,
   BookOpen,
   Leaf
 } from "lucide-react";
@@ -15,10 +15,10 @@ const Navigation = () => {
 
   const navItems = [
     { to: "/", icon: Leaf, label: "Dashboard" },
+    { to: "/pest-control", icon: Bug, label: "Disease Prediction" },
     { to: "/weather", icon: Cloud, label: "Weather" },
     { to: "/market-prices", icon: TrendingUp, label: "Market Prices" },
     { to: "/crop-calendar", icon: Calendar, label: "Crop Calendar" },
-    { to: "/pest-control", icon: Bug, label: "Pest Control" },
     { to: "/equipment", icon: Wrench, label: "Equipment" },
     { to: "/planning", icon: Users, label: "Planning & Consultation" },
     { to: "/knowledge-base", icon: BookOpen, label: "Knowledge Base" },
