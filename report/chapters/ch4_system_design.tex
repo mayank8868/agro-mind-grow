@@ -1,0 +1,145 @@
+\chapter{System Design}
+
+\section{System Architecture}
+The system follows a robust \textbf{Client-Server Architecture}, designed for scalability and maintainability. The architecture is decoupled, meaning the frontend and backend can be developed, deployed, and scaled independently.
+
+\begin{enumerate}
+    \item \textbf{Frontend (Client)}: Built with \textbf{React.js} and \textbf{Tailwind CSS}. It handles user interaction, image upload, and data visualization. It communicates with the backend via RESTful APIs.
+    \item \textbf{Backend (Server)}: Built with \textbf{FastAPI (Python)}. It serves as the central controller. It handles:
+    \begin{itemize}
+        \item API Requests from the frontend.
+        \item Image Pre-processing and Validation.
+        \item Model Inference (loading the PyTorch model).
+        \item Data Aggregation (fetching weather/market data).
+    \end{itemize}
+    \item \textbf{AI Engine}: A trained \textbf{EfficientNet-B2} model stored as a serialized file (\texttt{.pth}). It is loaded into memory by the backend to perform predictions.
+    \item \textbf{Database}: A static JSON/Dictionary-based database (\texttt{disease\_database.py}) stores the static content for symptoms, causes, and treatments to ensure fast retrieval without database latency.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{system_architecture}
+    \caption{Detailed System Architecture Diagram}
+    \label{fig:sys_arch}
+\end{figure}
+
+\section{UML Diagrams}
+Unified Modeling Language (UML) diagrams help in visualizing the system's design.
+
+\subsection{Use Case Diagram}
+The Use Case diagram depicts the interactions between the actors (Farmer, Admin) and the system.
+\begin{itemize}
+    \item \textbf{Actors}: Farmer (User), System Admin.
+    \item \textbf{Use Cases}: Upload Image, View Prediction, Check Weather, View Market Prices, Login/Register.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{use_case_diagram}
+    \caption{Use Case Diagram}
+    \label{fig:use_case}
+\end{figure}
+
+\subsection{Sequence Diagram}
+The Sequence diagram illustrates the flow of messages for the "Disease Prediction" process.
+\begin{enumerate}
+    \item User uploads image $\rightarrow$ Frontend.
+    \item Frontend sends POST request $\rightarrow$ Backend API.
+    \item Backend validates image $\rightarrow$ Validation Module.
+    \item Backend sends tensor $\rightarrow$ AI Model.
+    \item AI Model returns probabilities $\rightarrow$ Backend.
+    \item Backend fetches disease info $\rightarrow$ Database.
+    \item Backend returns JSON response $\rightarrow$ Frontend.
+    \item Frontend displays results $\rightarrow$ User.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{sequence_diagram}
+    \caption{Sequence Diagram for Disease Prediction}
+    \label{fig:sequence}
+\end{figure}
+
+\subsection{Activity Diagram}
+The Activity diagram shows the workflow of the user interaction, including decision points like "Is Image Valid?" or "Is Confidence High?".
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{activity_diagram}
+    \caption{Activity Diagram}
+    \label{fig:activity}
+\end{figure}
+
+\section{Data Design}
+
+\subsection{Disease Database Schema}
+Although we use a dictionary-based storage for speed, the data follows a strict schema structure. This ensures consistency across all 38 disease classes.
+
+\begin{lstlisting}[language=json, caption=JSON Structure of Disease Database]
+{
+  "Tomato___Bacterial_spot": {
+    "symptoms": [
+      "Small, water-soaked spots on leaves",
+      "Spots turn brown and scabby",
+      "Yellowing of leaves"
+    ],
+    "causes": [
+      "Bacteria Xanthomonas campestris",
+      "High humidity and warm temperatures",
+      "Splashing rain or irrigation water"
+    ],
+    "treatments": {
+      "chemical": [
+        "Copper-based bactericides",
+        "Streptomycin sulfate"
+      ],
+      "organic": [
+        "Neem oil spray",
+        "Copper soap"
+      ],
+      "prevention": [
+        "Use disease-free seeds",
+        "Crop rotation",
+        "Avoid overhead irrigation"
+      ]
+    }
+  },
+  "Potato___Early_blight": {
+    ...
+  }
+}
+\end{lstlisting}
+
+\section{Hardware / Software Specifications}
+
+\subsection{Hardware Requirements}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|}
+    \hline
+    \textbf{Component} & \textbf{Minimum Specification} & \textbf{Recommended Specification} \\ \hline
+    Processor & Intel Core i3 / AMD Ryzen 3 & Intel Core i5 / AMD Ryzen 5 \\ \hline
+    RAM & 4 GB & 8 GB or higher \\ \hline
+    Storage & 10 GB HDD & 256 GB SSD \\ \hline
+    GPU & Integrated Graphics & NVIDIA GTX/RTX Series (for Training) \\ \hline
+    Internet & 2 Mbps & 10 Mbps or higher \\ \hline
+    \end{tabular}
+    \caption{Hardware Requirements}
+    \label{tab:hardware}
+\end{table}
+
+\subsection{Software Requirements}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Component} & \textbf{Specification} \\ \hline
+    Operating System & Windows 10/11, Linux (Ubuntu), or macOS \\ \hline
+    Frontend Technology & React.js, Vite, TypeScript, Tailwind CSS \\ \hline
+    Backend Technology & Python 3.9+, FastAPI, Uvicorn \\ \hline
+    AI/ML Libraries & PyTorch, Torchvision, NumPy, Pillow \\ \hline
+    IDE / Tools & VS Code, Git, Postman \\ \hline
+    \end{tabular}
+    \caption{Software Requirements}
+    \label{tab:software}
+\end{table}

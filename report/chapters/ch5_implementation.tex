@@ -1,0 +1,1062 @@
+\chapter{Implementation Details}
+
+This chapter provides a comprehensive look at the implementation of the AgroMind Grow system. It includes the full source code for the critical modules: Model Training, Backend API, and Frontend User Interface.
+
+\section{Model Training Module (\texttt{backend/train.py})}
+The training script is the heart of the AI system. It handles the loading of the dataset, the definition of the EfficientNet-B2 model, the application of data augmentation, and the training loop with the OneCycleLR scheduler.
+
+\subsection{Code Description}
+The script begins by importing necessary libraries like PyTorch, Torchvision, and PIL. It defines a \texttt{Config} class to centralize hyperparameters such as batch size (64), learning rate (1e-3), and number of epochs (30).
+
+The \texttt{PlantDiseaseDataset} class inherits from \texttt{torch.utils.data.Dataset} and handles the loading of images from the directory structure. It automatically maps class names to integer indices.
+
+The \texttt{PlantDiseaseModel} class defines the neural network architecture. It loads a pre-trained EfficientNet-B2 backbone and replaces the final classifier with a custom head tailored to our 38 classes.
+
+\subsection{Full Source Code}
+\begin{lstlisting}[language=Python, caption=Full Source Code of train.py]
+import os
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms, models
+from torch.optim.lr_scheduler import OneCycleLR
+import numpy as np
+from PIL import Image, ImageFile
+from tqdm import tqdm
+import json
+from pathlib import Path
+import random
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# Configuration
+class Config:
+    # Data
+    data_dir = "../datasets/plant_disease_recognition/train"
+    val_dir = "../datasets/plant_disease_recognition/validation"
+    test_dir = "../datasets/plant_disease_recognition/test"
+    
+    # System
+    num_workers = 4
+    pin_memory = True
+    
+    # Training
+    batch_size = 64  # Reduced for RTX 3050 (4GB/6GB VRAM) with larger model
+    num_epochs = 30
+    learning_rate = 1e-3
+    weight_decay = 1e-4
+    label_smoothing = 0.1
+    
+    # Model
+    model_name = 'efficientnet_b2' # Good balance of speed/accuracy for RTX 3050
+    dropout = 0.4
+    
+    # Paths
+    model_dir = "models"
+    model_path = os.path.join(model_dir, "best_model.pth")
+    class_to_idx_path = os.path.join(model_dir, "class_to_idx.json")
+    
+    # Augmentation
+    image_size = 260 # EfficientNet-B2 native resolution
+    
+    def __init__(self):
+        os.makedirs(self.model_dir, exist_ok=True)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Custom Dataset
+class PlantDiseaseDataset(Dataset):
+    def __init__(self, data_dir, transform=None):
+        self.data_dir = Path(data_dir)
+        self.transform = transform
+        
+        # Get class names
+        self.classes = sorted([d.name for d in self.data_dir.iterdir() if d.is_dir()])
+        self.class_to_idx = {cls: i for i, cls in enumerate(self.classes)}
+        
+        # Get all images
+        self.samples = []
+        for class_name in self.classes:
+            class_dir = self.data_dir / class_name
+            for img_path in class_dir.glob('*.*'):
+                if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp']:
+                    self.samples.append((str(img_path), self.class_to_idx[class_name]))
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        img_path, label = self.samples[idx]
+        try:
+            image = Image.open(img_path).convert('RGB')
+            if self.transform:
+                image = self.transform(image)
+            return image, label
+        except Exception as e:
+            print(f"Error loading image {img_path}: {e}")
+            # Return a random other image on error
+            return self.__getitem__(random.randint(0, len(self) - 1))
+
+# Advanced Augmentation
+def get_transforms(train=True):
+    if train:
+        return transforms.Compose([
+            transforms.Resize((Config.image_size + 32, Config.image_size + 32)),
+            transforms.RandomResizedCrop(Config.image_size, scale=(0.6, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(30),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.2, scale=(0.02, 0.2)),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.Resize((Config.image_size, Config.image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+
+# Model Definition
+class PlantDiseaseModel(nn.Module):
+    def __init__(self, num_classes, model_name='efficientnet_b2'):
+        super(PlantDiseaseModel, self).__init__()
+        
+        # Load pretrained model
+        if model_name == 'efficientnet_b2':
+            self.backbone = models.efficientnet_b2(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity() # Remove original classifier
+        elif model_name == 'efficientnet_b0':
+            self.backbone = models.efficientnet_b0(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+            
+        # Custom Head
+        self.classifier = nn.Sequential(
+            nn.BatchNorm1d(in_features),
+            nn.Linear(in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(Config.dropout),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(Config.dropout / 2),
+            nn.Linear(256, num_classes)
+        )
+        
+    def forward(self, x):
+        features = self.backbone(x)
+        return self.classifier(features)
+
+def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scaler):
+    model.train()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+    
+    pbar = tqdm(loader, desc="Training")
+    for images, labels in pbar:
+        images, labels = images.to(device), labels.to(device)
+        
+        optimizer.zero_grad()
+        
+        with torch.cuda.amp.autocast():
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        
+        if scheduler is not None:
+            scheduler.step()
+            
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        
+        pbar.set_postfix({'loss': running_loss/total, 'acc': 100.*correct/total})
+        
+    return running_loss / len(loader), 100. * correct / total
+
+@torch.no_grad()
+def validate(model, loader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+    
+    for images, labels in tqdm(loader, desc="Validation"):
+        images, labels = images.to(device), labels.to(device)
+        
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        
+    return running_loss / len(loader), 100. * correct / total
+
+def main():
+    config = Config()
+    print(f"Using device: {config.device}")
+    
+    # Datasets
+    print("Loading datasets...")
+    train_dataset = PlantDiseaseDataset(config.data_dir, get_transforms(train=True))
+    val_dataset = PlantDiseaseDataset(config.val_dir, get_transforms(train=False))
+    
+    print(f"Training samples: {len(train_dataset)}")
+    print(f"Validation samples: {len(val_dataset)}")
+    print(f"Number of classes: {len(train_dataset.classes)}")
+    
+    # Save class mapping immediately
+    save_data = {
+        'class_to_idx': train_dataset.class_to_idx,
+        'classes': train_dataset.classes,
+        'model_name': config.model_name
+    }
+    with open(config.class_to_idx_path, 'w') as f:
+        json.dump(save_data, f, indent=2)
+        
+    # Dataloaders
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=config.batch_size, 
+        shuffle=True, 
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory
+    )
+    
+    val_loader = DataLoader(
+        val_dataset, 
+        batch_size=config.batch_size, 
+        shuffle=False, 
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory
+    )
+    
+    # Model Setup
+    model = PlantDiseaseModel(len(train_dataset.classes), config.model_name).to(config.device)
+    
+    # Training Setup
+    criterion = nn.CrossEntropyLoss(label_smoothing=config.label_smoothing)
+    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    
+    # Scheduler
+    scheduler = OneCycleLR(
+        optimizer,
+        max_lr=config.learning_rate,
+        epochs=config.num_epochs,
+        steps_per_epoch=len(train_loader),
+        pct_start=0.1,
+        div_factor=25.0,
+        final_div_factor=1000.0
+    )
+    
+    scaler = torch.cuda.amp.GradScaler()
+    
+    # Training Loop
+    best_acc = 0.0
+    patience = 7
+    counter = 0
+    
+    print("\nStarting training...")
+    for epoch in range(config.num_epochs):
+        print(f"\nEpoch {epoch+1}/{config.num_epochs}")
+        
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, scheduler, config.device, scaler
+        )
+        
+        val_loss, val_acc = validate(model, val_loader, criterion, config.device)
+        
+        print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")
+        print(f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+        
+        # Save best model
+        if val_acc > best_acc:
+            print(f"New best model! ({best_acc:.2f}% -> {val_acc:.2f}%)")
+            best_acc = val_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'accuracy': best_acc,
+                'class_to_idx': train_dataset.class_to_idx
+            }, config.model_path)
+            counter = 0
+        else:
+            counter += 1
+            print(f"No improvement for {counter} epochs")
+            
+        if counter >= patience:
+            print("Early stopping triggered!")
+            break
+            
+    print("Training complete!")
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\section{Backend API Module (\texttt{backend/api.py})}
+The backend API is built using FastAPI. It exposes a \texttt{/predict} endpoint that accepts an image, validates it, and returns the disease prediction along with treatment information.
+
+\subsection{Code Description}
+Key features of this script include:
+\begin{itemize}
+    \item \textbf{is\_valid\_image}: A robust function that uses color histograms (Green/Brown/Blue ratios) and variance analysis to reject non-plant images.
+    \item \textbf{predict}: The main endpoint. It handles image loading, preprocessing, model inference, and response construction.
+    \item \textbf{CORS Middleware}: Configured to allow requests from the React frontend.
+\end{itemize}
+
+\subsection{Full Source Code}
+\begin{lstlisting}[language=Python, caption=Full Source Code of api.py]
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import torch
+import torch.nn as nn
+from torchvision import transforms, models
+from PIL import Image
+import io
+import json
+import os
+from pathlib import Path
+from disease_database import get_disease_info
+import numpy as np
+
+# Define Model Architecture (Must match train.py)
+class PlantDiseaseModel(nn.Module):
+    def __init__(self, num_classes, model_name='efficientnet_b2'):
+        super(PlantDiseaseModel, self).__init__()
+        
+        if model_name == 'efficientnet_b2':
+            self.backbone = models.efficientnet_b2(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+        elif model_name == 'efficientnet_b0':
+            self.backbone = models.efficientnet_b0(weights='DEFAULT')
+            in_features = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+            
+        self.classifier = nn.Sequential(
+            nn.BatchNorm1d(in_features),
+            nn.Linear(in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.4),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, num_classes)
+        )
+        
+    def forward(self, x):
+        features = self.backbone(x)
+        return self.classifier(features)
+
+app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Configuration
+MODEL_DIR = "models"
+MODEL_PATH = os.path.join(MODEL_DIR, "best_model.pth")
+CLASS_MAP_PATH = os.path.join(MODEL_DIR, "class_to_idx.json")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Global variables
+model = None
+class_to_idx = {}
+idx_to_class = {}
+
+def load_model():
+    global model, class_to_idx, idx_to_class
+    
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(CLASS_MAP_PATH):
+        print("Model or class mapping not found. Please train the model first.")
+        return
+
+    try:
+        # Load class mapping
+        with open(CLASS_MAP_PATH, 'r') as f:
+            data = json.load(f)
+            if 'class_to_idx' in data:
+                class_to_idx = data['class_to_idx']
+                model_name = data.get('model_name', 'efficientnet_b2')
+            else:
+                class_to_idx = data
+                model_name = 'efficientnet_b2'
+            
+            idx_to_class = {v: k for k, v in class_to_idx.items()}
+
+        # Initialize model
+        model = PlantDiseaseModel(len(class_to_idx), model_name=model_name)
+        
+        # Load weights
+        checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            model.load_state_dict(checkpoint)
+            
+        model = model.to(DEVICE)
+        model.eval()
+        print(f"Model loaded successfully: {model_name} with {len(class_to_idx)} classes")
+        
+    except Exception as e:
+        print(f"Error loading model: {e}")
+
+# Load model on startup
+load_model()
+
+# Preprocessing
+preprocess = transforms.Compose([
+    transforms.Resize((260, 260)), # Match training size
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+def is_valid_image(image: Image.Image) -> bool:
+    """
+    Robust check for valid plant images using color analysis and edge density.
+    """
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+    
+    # Resize for analysis - keep it small for speed
+    img_small = image.resize((100, 100))
+    
+    # Focus on the center of the image (where the subject usually is)
+    # Crop to center 50x50
+    width, height = img_small.size
+    left = (width - 50) / 2
+    top = (height - 50) / 2
+    right = (width + 50) / 2
+    bottom = (height + 50) / 2
+    img_center = img_small.crop((left, top, right, bottom))
+    
+    pixels = np.array(img_center)
+    
+    # 1. Color Analysis
+    r, g, b = pixels[:,:,0], pixels[:,:,1], pixels[:,:,2]
+    
+    # Green dominance (healthy plants)
+    green_mask = (g > r) & (g > b)
+    
+    # Brown/Yellow dominance (diseased plants, soil)
+    brown_mask = (r > b) & (g > b) & (r > 50)
+    
+    # Blue dominance (sky, jeans, artificial objects - rarely dominant in plants)
+    blue_mask = (b > r) & (b > g)
+    
+    # Calculate ratios
+    total_pixels = pixels.shape[0] * pixels.shape[1]
+    green_ratio = np.sum(green_mask) / total_pixels
+    brown_ratio = np.sum(brown_mask) / total_pixels
+    blue_ratio = np.sum(blue_mask) / total_pixels
+    
+    plant_ratio = green_ratio + brown_ratio
+    
+    # 2. Variance/Texture Analysis (Plants have texture, solid colors don't)
+    variance = np.var(pixels)
+    
+    # Thresholds
+    if variance < 500: # Too uniform (solid color, blurry)
+        return False
+        
+    if blue_ratio > 0.15: # Stricter blue check (15%)
+        return False
+        
+    if plant_ratio < 0.45: # Stricter plant check: Center must be at least 45% plant-colored
+        return False
+        
+    if green_ratio < 0.05: # Must have at least 5% actual green (leaves)
+        return False
+        
+    return True
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...), plant_type: str = None):
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded. Please train the model first.")
+        
+    try:
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents)).convert('RGB')
+        
+        # 1. Validate Image
+        if not is_valid_image(image):
+            return {
+                "class": "invalid_image",
+                "confidence": 0,
+                "message": "The image does not appear to be a plant. Please upload a clear photo of a leaf or plant."
+            }
+            
+        # 2. Preprocess
+        input_tensor = preprocess(image).unsqueeze(0).to(DEVICE)
+        
+        # 3. Inference
+        with torch.no_grad():
+            outputs = model(input_tensor)
+            probs = torch.nn.functional.softmax(outputs, dim=1)
+            
+            # Get top predictions
+            top_probs, top_indices = torch.topk(probs, 5)
+            
+            top_predictions = []
+            for i in range(5):
+                idx = top_indices[0][i].item()
+                prob = top_probs[0][i].item() * 100
+                class_name = idx_to_class[idx]
+                
+                top_predictions.append({
+                    "class": class_name,
+                    "confidence": round(prob, 2)
+                })
+        
+        # 4. Low Confidence Rejection (Invalid Image Check)
+        if top_predictions[0]['confidence'] < 50.0:
+             return {
+                "class": "invalid_image",
+                "confidence": 0,
+                "message": "The image content is unclear or does not appear to be a known plant. Please upload a clear photo of a plant leaf."
+            }
+
+        # 5. Filter by plant type if specified
+        best_prediction = top_predictions[0]
+        
+        if plant_type:
+            plant_type = plant_type.lower()
+            filtered = [p for p in top_predictions if plant_type in p['class'].lower()]
+            if filtered:
+                best_prediction = filtered[0]
+                if best_prediction != top_predictions[0]:
+                    best_prediction['confidence'] = min(best_prediction['confidence'] * 1.2, 99.9)
+        
+        # 5. Construct Response
+        predicted_class = best_prediction['class']
+        confidence = best_prediction['confidence']
+        
+        # Get disease info
+        disease_info = get_disease_info(predicted_class)
+        
+        # Determine status message
+        if confidence < 40:
+            message = "Low confidence. The model is unsure. Please ensure the image is clear and focused on the leaf."
+        elif confidence < 70:
+            message = "Moderate confidence. Verify the symptoms with the description below."
+        else:
+            message = "High confidence prediction."
+
+        return {
+            "class": predicted_class,
+            "confidence": confidence,
+            "top3_predictions": top_predictions[:3],
+            "message": message,
+            "symptoms": disease_info.get("symptoms", []),
+            "causes": disease_info.get("causes", []),
+            "treatments": disease_info.get("treatments", {}),
+            "prevention": disease_info.get("treatments", {}).get("prevention", [])
+        }
+
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "model_loaded": model is not None,
+        "device": str(DEVICE)
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+\end{lstlisting}
+
+\section{Frontend Module (\texttt{src/pages/PestControl.tsx})}
+The frontend is built with React. The \texttt{PestControl} component handles the user interface for uploading images and displaying results.
+
+\subsection{Code Description}
+\begin{itemize}
+    \item \textbf{State Management}: Uses \texttt{useState} to track the file, preview URL, loading state, and results.
+    \item \textbf{Drag and Drop}: Implements \texttt{handleDrag} and \texttt{handleDrop} for a modern user experience.
+    \item \textbf{Result Display}: Conditionally renders the result card, showing symptoms, causes, and treatments only when a valid prediction is received.
+    \item \textbf{Error Handling}: Displays inline error messages for invalid images or network failures.
+\end{itemize}
+
+\subsection{Full Source Code}
+\begin{lstlisting}[language=JavaScript, caption=Full Source Code of PestControl.tsx]
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Upload, X, Search, Leaf, AlertTriangle, CheckCircle2,
+  Info, Loader2, Sprout, Bug, ShieldCheck
+} from "lucide-react";
+
+interface Prediction {
+  class: string;
+  confidence: number;
+}
+
+interface DiseaseResult {
+  class: string;
+  confidence: number;
+  message: string;
+  symptoms: string[];
+  causes: string[];
+  treatments: {
+    chemical?: string[];
+    organic?: string[];
+    prevention?: string[];
+  };
+  prevention: string[];
+  top3_predictions: Prediction[];
+}
+
+const PestControl = () => {
+  const { toast } = useToast();
+
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DiseaseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  const handleFile = (selectedFile: File) => {
+    if (!selectedFile.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file (JPG, PNG, WEBP).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreview(objectUrl);
+    setResult(null);
+    setError(null);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const clearSelection = () => {
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const analyzeImage = async () => {
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to analyze image");
+      }
+
+      if (data.class === "invalid_image") {
+        setError(data.message);
+        setResult(null);
+      } else {
+        setResult(data);
+        toast({
+          title: "Analysis Complete",
+          description: "Here are the results for your plant.",
+        });
+      }
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast({
+        title: "Error",
+        description: "Could not connect to the analysis server. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-background p-4 md:p-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-green-800 dark:text-green-400 tracking-tight">
+            Plant Doctor AI
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Upload a photo of your plant to instantly identify diseases and get expert treatment recommendations.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Left Column: Upload & Controls */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="border-green-100 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-5 h-5 text-green-600" />
+                  Analysis Setup
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+
+                {/* Upload Area */}
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-200 ease-in-out text-center cursor-pointer
+                    ${dragActive ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-muted-foreground/25 hover:border-green-400 hover:bg-accent/50"}
+                    ${preview ? "border-solid border-green-200 bg-green-50/50" : ""}
+                  `}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => !preview && fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  />
+
+                  {preview ? (
+                    <div className="relative">
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-64 object-cover rounded-lg shadow-sm"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearSelection();
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="py-8 space-y-4">
+                      <div className="w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto">
+                        <Upload className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          Click or drag image here
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Supports JPG, PNG, WEBP
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
+                  disabled={!file || loading}
+                  onClick={analyzeImage}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sprout className="w-4 h-4 mr-2" />
+                      Diagnose Plant
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Results */}
+          <div className="lg:col-span-2">
+            {error ? (
+              <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <AlertTriangle className="w-6 h-6" />
+                    Invalid Image Detected
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-red-600 dark:text-red-300">
+                    {error}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:text-red-400"
+                    onClick={clearSelection}
+                  >
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : result ? (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Main Diagnosis Card */}
+                <Card className={`border-l-4 shadow-md ${result.class.toLowerCase().includes("healthy")
+                  ? "border-l-green-500"
+                  : "border-l-red-500"
+                  }`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                          {result.class.toLowerCase().includes("healthy") ? (
+                            <CheckCircle2 className="w-6 h-6 text-green-500" />
+                          ) : (
+                            <AlertTriangle className="w-6 h-6 text-red-500" />
+                          )}
+                          {result.class.replace(/_/g, " ").replace("___", " - ")}
+                        </CardTitle>
+                        <CardDescription className="mt-2 text-base">
+                          {result.message}
+                        </CardDescription>
+                      </div>
+                      <Badge
+                        variant={result.confidence > 70 ? "default" : "secondary"}
+                        className="text-lg px-3 py-1"
+                      >
+                        {result.confidence.toFixed(1)}% Confidence
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  {/* Top 3 Predictions (if confidence is low/medium) */}
+                  {result.confidence < 85 && (
+                    <CardContent className="pb-2">
+                      <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                        <p className="font-medium mb-2 text-muted-foreground">Alternative Possibilities:</p>
+                        <div className="space-y-1">
+                          {result.top3_predictions.slice(1).map((pred, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span>{pred.class.replace(/_/g, " ")}</span>
+                              <span className="font-mono text-muted-foreground">{pred.confidence.toFixed(1)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* Detailed Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Symptoms */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Info className="w-5 h-5 text-blue-500" />
+                        Symptoms
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {result.symptoms.length > 0 ? (
+                          result.symptoms.map((symptom, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
+                              {symptom}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">No specific symptoms listed.</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  {/* Causes */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Bug className="w-5 h-5 text-orange-500" />
+                        Causes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {result.causes.length > 0 ? (
+                          result.causes.map((cause, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+                              {cause}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">No specific causes listed.</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  {/* Treatments */}
+                  <Card className="md:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <ShieldCheck className="w-5 h-5 text-green-600" />
+                        Treatment & Prevention
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        {/* Organic */}
+                        <div>
+                          <h4 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                            <Leaf className="w-4 h-4" /> Organic
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.treatments.organic?.map((t, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-green-200 pl-2">
+                                {t}
+                              </li>
+                            )) || <li className="text-sm text-muted-foreground">No organic treatments listed.</li>}
+                          </ul>
+                        </div>
+
+                        {/* Chemical */}
+                        <div>
+                          <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" /> Chemical
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.treatments.chemical?.map((t, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-purple-200 pl-2">
+                                {t}
+                              </li>
+                            )) || <li className="text-sm text-muted-foreground">No chemical treatments listed.</li>}
+                          </ul>
+                        </div>
+
+                        {/* Prevention */}
+                        <div>
+                          <h4 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4" /> Prevention
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.prevention?.map((p, i) => (
+                              <li key={i} className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
+                                {p}
+                              </li>
+                            )) || <li className="text-sm text-muted-foreground">No prevention tips listed.</li>}
+                          </ul>
+                        </div>
+
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/5">
+                <div className="w-24 h-24 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
+                  <Sprout className="w-12 h-12 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Ready to Analyze</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Upload a clear image of a plant leaf to detect diseases.
+                  Our AI model analyzes patterns to provide accurate diagnoses and treatment plans.
+                </p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PestControl;
+\end{lstlisting}

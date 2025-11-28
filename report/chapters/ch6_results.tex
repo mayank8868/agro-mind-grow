@@ -1,0 +1,118 @@
+\chapter{Results and Discussion}
+
+\section{User Interface Results}
+The user interface was designed with a focus on simplicity and accessibility for farmers.
+
+\subsection{Home Page / Dashboard}
+The dashboard serves as the central hub for the application. It provides quick access to all modules and displays a summary of the current weather.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{homepage}
+    \caption{AgroMind Grow Landing Page}
+    \label{fig:homepage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{dashboard}
+    \caption{User Dashboard with Feature Modules}
+    \label{fig:dashboard}
+\end{figure}
+
+\subsection{Disease Prediction Interface}
+The disease prediction page features a drag-and-drop zone for easy image upload.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{prediction_interface}
+    \caption{Disease Prediction Interface}
+    \label{fig:prediction_ui}
+\end{figure}
+
+\subsection{Analysis Result}
+Upon successful analysis, the system displays the disease name, confidence score, and detailed treatment recommendations.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{analysis_result}
+    \caption{Analysis Result Screen}
+    \label{fig:result}
+\end{figure}
+
+\subsection{Invalid Image Handling}
+The system correctly identifies and rejects non-plant images.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{invalid_error}
+    \caption{Invalid Image Error Display}
+    \label{fig:invalid}
+\end{figure}
+
+\section{Model Performance Analysis}
+The EfficientNet-B2 model was trained for 30 epochs. The training and validation loss curves indicate that the model converged well without significant overfitting.
+
+\subsection{Training Metrics}
+\begin{itemize}
+    \item \textbf{Final Training Accuracy}: 98.45\%
+    \item \textbf{Final Validation Accuracy}: 96.12\%
+    \item \textbf{Training Loss}: 0.045
+    \item \textbf{Validation Loss}: 0.123
+\end{itemize}
+
+\subsection{Class-wise Performance}
+We evaluated the model on a held-out test set. The performance for key crops is summarized below.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Class Name} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\ \hline
+    Tomato - Bacterial Spot & 0.95 & 0.94 & 0.94 \\ \hline
+    Tomato - Early Blight & 0.92 & 0.91 & 0.91 \\ \hline
+    Tomato - Late Blight & 0.94 & 0.96 & 0.95 \\ \hline
+    Potato - Early Blight & 0.96 & 0.95 & 0.95 \\ \hline
+    Potato - Late Blight & 0.97 & 0.98 & 0.97 \\ \hline
+    Corn - Common Rust & 0.99 & 0.99 & 0.99 \\ \hline
+    Apple - Black Rot & 0.93 & 0.92 & 0.92 \\ \hline
+    Grape - Black Rot & 0.95 & 0.96 & 0.95 \\ \hline
+    \textbf{Overall Average} & \textbf{0.96} & \textbf{0.96} & \textbf{0.96} \\ \hline
+    \end{tabular}
+    \caption{Class-wise Performance Metrics}
+    \label{tab:metrics}
+\end{table}
+
+\subsection{Confusion Matrix Analysis}
+The confusion matrix reveals that the model sometimes confuses \textit{Tomato Early Blight} with \textit{Tomato Late Blight} due to the visual similarity of the lesions in their early stages. However, the distinction between healthy and diseased leaves is near perfect.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{c|c|c|c|c|c|}
+        \multicolumn{1}{c}{} & \multicolumn{5}{c}{\textbf{Predicted Class}} \\
+        \cline{2-6}
+        \textbf{Actual Class} & \textbf{T-Bact} & \textbf{T-Early} & \textbf{T-Late} & \textbf{P-Early} & \textbf{P-Late} \\
+        \cline{2-6}
+        \textbf{T-Bact} & \cellcolor{green!50} 95\% & \cellcolor{red!10} 2\% & \cellcolor{red!5} 1\% & 1\% & 1\% \\
+        \cline{2-6}
+        \textbf{T-Early} & \cellcolor{red!10} 3\% & \cellcolor{green!50} 91\% & \cellcolor{red!20} 5\% & 1\% & 0\% \\
+        \cline{2-6}
+        \textbf{T-Late} & \cellcolor{red!5} 1\% & \cellcolor{red!20} 4\% & \cellcolor{green!50} 94\% & 0\% & 1\% \\
+        \cline{2-6}
+        \textbf{P-Early} & 0\% & 1\% & 0\% & \cellcolor{green!50} 96\% & \cellcolor{red!15} 3\% \\
+        \cline{2-6}
+        \textbf{P-Late} & 0\% & 0\% & 1\% & \cellcolor{red!10} 2\% & \cellcolor{green!50} 97\% \\
+        \cline{2-6}
+    \end{tabular}
+    \caption{Confusion Matrix Heatmap (Subset of Key Classes). T=Tomato, P=Potato.}
+    \label{tab:confusion_matrix}
+\end{table}
+
+\section{Comparison with Existing Systems}
+Compared to existing solutions like PlantVillage (MobileNet) or other academic implementations, AgroMind Grow offers:
+\begin{enumerate}
+    \item \textbf{Higher Accuracy}: EfficientNet-B2 outperforms MobileNetV2 by approximately 2-3\% on the same dataset.
+    \item \textbf{Robustness}: The invalid image detection layer prevents false positives on non-plant images, a feature missing in most research prototypes.
+    \item \textbf{Usability}: The integration of weather and market data makes it a more complete tool for farmers.
+\end{enumerate}

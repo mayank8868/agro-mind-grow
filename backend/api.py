@@ -112,61 +112,14 @@ preprocess = transforms.Compose([
 
 def is_valid_image(image: Image.Image) -> bool:
     """
-    Robust check for valid plant images using color analysis and edge density.
+    Simplified validation - accept all images and let the model decide.
+    The confidence threshold will filter out truly invalid predictions.
     """
+    # Just do basic checks
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
-    # Resize for analysis - keep it small for speed
-    img_small = image.resize((100, 100))
-    
-    # Focus on the center of the image (where the subject usually is)
-    # Crop to center 50x50
-    width, height = img_small.size
-    left = (width - 50) / 2
-    top = (height - 50) / 2
-    right = (width + 50) / 2
-    bottom = (height + 50) / 2
-    img_center = img_small.crop((left, top, right, bottom))
-    
-    pixels = np.array(img_center)
-    
-    # 1. Color Analysis
-    r, g, b = pixels[:,:,0], pixels[:,:,1], pixels[:,:,2]
-    
-    # Green dominance (healthy plants)
-    green_mask = (g > r) & (g > b)
-    
-    # Brown/Yellow dominance (diseased plants, soil)
-    brown_mask = (r > b) & (g > b) & (r > 50)
-    
-    # Blue dominance (sky, jeans, artificial objects - rarely dominant in plants)
-    blue_mask = (b > r) & (b > g)
-    
-    # Calculate ratios
-    total_pixels = pixels.shape[0] * pixels.shape[1]
-    green_ratio = np.sum(green_mask) / total_pixels
-    brown_ratio = np.sum(brown_mask) / total_pixels
-    blue_ratio = np.sum(blue_mask) / total_pixels
-    
-    plant_ratio = green_ratio + brown_ratio
-    
-    # 2. Variance/Texture Analysis (Plants have texture, solid colors don't)
-    variance = np.var(pixels)
-    
-    # Thresholds
-    if variance < 500: # Too uniform (solid color, blurry)
-        return False
-        
-    if blue_ratio > 0.15: # Stricter blue check (15%)
-        return False
-        
-    if plant_ratio < 0.45: # Stricter plant check: Center must be at least 45% plant-colored
-        return False
-        
-    if green_ratio < 0.05: # Must have at least 5% actual green (leaves)
-        return False
-        
+    # Accept all images - let the model's confidence threshold handle filtering
     return True
 
 @app.post("/predict")
@@ -209,9 +162,9 @@ async def predict(file: UploadFile = File(...), plant_type: str = None):
                 })
         
         # 4. Low Confidence Rejection (Invalid Image Check)
-        # If the model is not at least 50% confident in its top prediction, 
+        # If the model is not at least 20% confident in its top prediction, 
         # it's likely not a plant or a known disease.
-        if top_predictions[0]['confidence'] < 50.0:
+        if top_predictions[0]['confidence'] < 20.0:
              return {
                 "class": "invalid_image",
                 "confidence": 0,

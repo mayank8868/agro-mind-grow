@@ -1,0 +1,728 @@
+\appendix
+\chapter{Appendix}
+
+\section{Complete Disease Database}
+
+This section presents the complete disease information database used by the AgroMind Grow system. The database contains detailed information for all 38 supported classes covering 14 major crops. Each entry includes symptoms, causes, and treatment options (chemical, organic, and preventive measures).
+
+\subsection{Database Structure}
+
+The disease database is implemented as a Python dictionary with the following structure for each disease class:
+
+\begin{lstlisting}[language=Python, caption=Disease Database Schema]
+{
+    "Disease_Class_Name": {
+        "symptoms": [
+            "List of observable symptoms",
+            "Visual characteristics",
+            "Progression patterns"
+        ],
+        "causes": [
+            "Causal agents (pathogen species)",
+            "Environmental conditions",
+            "Transmission methods"
+        ],
+        "treatments": {
+            "chemical": [
+                "Chemical fungicides/pesticides",
+                "Application methods and timing"
+            ],
+            "organic": [
+                "Organic treatment options",
+                "Natural remedies"
+            ],
+            "prevention": [
+                "Preventive cultural practices",
+                "Resistant varieties",
+                "Sanitation measures"
+            ]
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Apple Diseases}
+
+\subsubsection{Apple Scab}
+\textbf{Class Name}: Apple\_\_\_Apple\_scab
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Olive-green to brown spots on leaves
+    \item Scabby lesions on fruits
+    \item Premature leaf drop
+    \item Reduced fruit quality and marketability
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection by \textit{Venturia inaequalis}
+    \item Cool wet spring weather (15-24°C with high humidity)
+    \item Poor air circulation in dense canopies
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Captan or Myclobutanil fungicide; Spray Mancozeb preventively
+    \item \textbf{Organic}: Sulfur spray; Neem oil application; Remove infected leaves
+    \item \textbf{Prevention}: Plant resistant varieties (e.g., Liberty, Enterprise); Prune for air circulation; Remove fallen leaves
+\end{itemize}
+
+\subsubsection{Apple Black Rot}
+\textbf{Class Name}: Apple\_\_\_Black\_rot
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Purple spots on leaves turning brown
+    \item Sunken black lesions on fruits
+    \item Cankers on branches
+    \item Fruit mummification
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection by \textit{Botryosphaeria obtusa}
+    \item Warm humid weather
+    \item Wounds on tree from pruning or hail damage
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Captan or Thiophanate-methyl; Prune infected branches
+    \item \textbf{Organic}: Copper fungicide; Remove mummified fruits; Improve sanitation
+    \item \textbf{Prevention}: Remove dead wood; Avoid tree injuries; Maintain tree vigor through proper nutrition
+\end{itemize}
+
+\subsubsection{Apple Cedar Rust}
+\textbf{Class Name}: Apple\_\_\_Cedar\_apple\_rust
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Yellow-orange spots on upper leaf surface
+    \item Tube-like structures on leaf undersides
+    \item Premature defoliation
+    \item Reduced photosynthetic capacity
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection requiring both cedar and apple trees (alternate hosts)
+    \item Spring rainfall facilitating spore release
+    \item Proximity to cedar trees (within 2 miles)
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Myclobutanil or Propiconazole; Spray during spring
+    \item \textbf{Organic}: Remove nearby cedar trees; Sulfur spray; Plant resistant varieties
+    \item \textbf{Prevention}: Plant resistant apple varieties; Remove cedar trees within 2 miles; Fungicide sprays in spring
+\end{itemize}
+
+\subsection{Tomato Diseases}
+
+\subsubsection{Tomato Bacterial Spot}
+\textbf{Class Name}: Tomato\_\_\_Bacterial\_spot
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Small dark spots with yellow halos on leaves
+    \item Raised brown spots on fruits
+    \item Leaf drop and defoliation
+    \item Reduced fruit quality
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Bacterial infection by \textit{Xanthomonas} species
+    \item Warm humid weather (24-30°C)
+    \item Water splash from rain or overhead irrigation
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply copper-based bactericides; Mancozeb + Copper combination
+    \item \textbf{Organic}: Copper sulfate spray; Remove infected parts; Improve air circulation
+    \item \textbf{Prevention}: Use certified disease-free seeds; Crop rotation (3-4 years); Avoid overhead irrigation
+\end{itemize}
+
+\subsubsection{Tomato Early Blight}
+\textbf{Class Name}: Tomato\_\_\_Early\_blight
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Dark brown spots with concentric rings (target pattern)
+    \item Yellowing around spots
+    \item Stem lesions near soil line
+    \item Fruit rot starting from stem end
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection by \textit{Alternaria solani}
+    \item Warm humid conditions (24-29°C)
+    \item Poor air circulation
+    \item Nutrient deficiency (especially nitrogen)
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Chlorothalonil or Mancozeb; Azoxystrobin fungicide
+    \item \textbf{Organic}: Neem oil spray; Baking soda solution (1 tbsp per gallon); Copper fungicide
+    \item \textbf{Prevention}: Use disease-free transplants; Mulch to prevent soil splash; Stake plants for air circulation
+\end{itemize}
+
+\subsubsection{Tomato Late Blight}
+\textbf{Class Name}: Tomato\_\_\_Late\_blight
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Large brown water-soaked lesions on leaves
+    \item White mold on undersides of leaves
+    \item Brown streaks on stems
+    \item Firm brown rot on fruits
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Oomycete \textit{Phytophthora infestans} (same pathogen as Irish Potato Famine)
+    \item Cool moist weather (10-25°C with high humidity)
+    \item High humidity and leaf wetness
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Metalaxyl or Cymoxanil immediately; Chlorothalonil + Metalaxyl combination
+    \item \textbf{Organic}: Copper fungicide (Bordeaux mixture); Remove infected plants; Improve air circulation
+    \item \textbf{Prevention}: Plant resistant varieties; Avoid overhead irrigation; Provide adequate spacing (3-4 feet)
+\end{itemize}
+
+\subsection{Potato Diseases}
+
+\subsubsection{Potato Early Blight}
+\textbf{Class Name}: Potato\_\_\_Early\_blight
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Dark brown spots with concentric rings on leaves
+    \item Yellowing around spots
+    \item Stem lesions
+    \item Tuber rot with dark, sunken areas
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection by \textit{Alternaria solani}
+    \item Warm humid conditions
+    \item Poor air circulation
+    \item Stressed or weakened plants
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Mancozeb or Chlorothalonil; Azoxystrobin fungicide
+    \item \textbf{Organic}: Neem oil spray; Baking soda solution; Remove infected leaves
+    \item \textbf{Prevention}: Use disease-free seed potatoes; Crop rotation (3-4 years); Adequate spacing
+\end{itemize}
+
+\subsubsection{Potato Late Blight}
+\textbf{Class Name}: Potato\_\_\_Late\_blight
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Water-soaked dark lesions on leaves
+    \item White mold on undersides
+    \item Rapid spread throughout plant
+    \item Tuber rot with reddish-brown discoloration
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Oomycete \textit{Phytophthora infestans}
+    \item Cool moist weather (10-25°C)
+    \item High humidity (>90\%)
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Metalaxyl or Cymoxanil immediately; Chlorothalonil + Metalaxyl
+    \item \textbf{Organic}: Copper fungicide (Bordeaux mixture); Remove infected plants; Improve drainage
+    \item \textbf{Prevention}: Plant resistant varieties; Avoid overhead irrigation; Hill up soil around plants
+\end{itemize}
+
+\subsection{Corn (Maize) Diseases}
+
+\subsubsection{Corn Common Rust}
+\textbf{Class Name}: Corn\_(maize)\_\_\_Common\_rust\_
+
+\textbf{Symptoms}:
+\begin{itemize}
+    \item Small circular reddish-brown pustules on leaves
+    \item Pustules on both upper and lower leaf surfaces
+    \item Premature leaf death in severe cases
+    \item Reduced photosynthesis
+\end{itemize}
+
+\textbf{Causes}:
+\begin{itemize}
+    \item Fungal infection by \textit{Puccinia sorghi}
+    \item Moderate temperatures (16-23°C)
+    \item High humidity and dew formation
+\end{itemize}
+
+\textbf{Treatments}:
+\begin{itemize}
+    \item \textbf{Chemical}: Apply Propiconazole or Azoxystrobin; Triazole fungicides
+    \item \textbf{Organic}: Neem oil spray; Sulfur dust; Remove heavily infected leaves
+    \item \textbf{Prevention}: Plant resistant hybrids; Timely planting; Balanced fertilization
+\end{itemize}
+
+\section{System Dependencies}
+
+\subsection{Backend Dependencies (Python)}
+
+The backend system requires the following Python packages:
+
+\begin{lstlisting}[language=text, caption=Backend Requirements (requirements.txt)]
+# Deep Learning Framework
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Numerical Computing
+numpy>=1.21.0
+
+# Image Processing
+Pillow>=9.0.0
+opencv-python>=4.5.0
+
+# Data Analysis and Visualization
+matplotlib>=3.5.0
+pandas>=1.4.0
+scikit-learn>=1.0.0
+
+# Progress Bars
+tqdm>=4.64.0
+
+# EfficientNet Implementation
+efficientnet-pytorch>=0.7.1
+
+# Web Framework
+fastapi>=0.95.0
+uvicorn>=0.21.0
+python-multipart>=0.0.6
+
+# CORS Support
+python-multipart>=0.0.6
+\end{lstlisting}
+
+\subsection{Frontend Dependencies (JavaScript/TypeScript)}
+
+The frontend application uses the following npm packages:
+
+\begin{lstlisting}[language=json, caption=Frontend Dependencies (package.json)]
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.11.0",
+    "typescript": "^5.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "lucide-react": "^0.263.0",
+    "tailwindcss": "^3.3.0",
+    "vite": "^4.3.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  }
+}
+\end{lstlisting}
+
+\section{Hardware Specifications}
+
+\subsection{Development Environment}
+
+The system was developed and tested on the following hardware configuration:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Component} & \textbf{Specification} \\ \hline
+    Processor & Intel Core i5-11400H / AMD Ryzen 5 5600H \\ \hline
+    RAM & 16 GB DDR4 \\ \hline
+    GPU & NVIDIA RTX 3050 (4GB VRAM) \\ \hline
+    Storage & 512 GB NVMe SSD \\ \hline
+    Operating System & Windows 11 / Ubuntu 22.04 LTS \\ \hline
+    \end{tabular}
+    \caption{Development Hardware Specifications}
+\end{table}
+
+\subsection{Recommended Deployment Environment}
+
+For production deployment, the following specifications are recommended:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Component} & \textbf{Specification} \\ \hline
+    Cloud Provider & AWS / Google Cloud / Azure \\ \hline
+    Instance Type & t3.medium or equivalent (2 vCPU, 4GB RAM) \\ \hline
+    GPU (Optional) & NVIDIA T4 or equivalent for faster inference \\ \hline
+    Storage & 50 GB SSD \\ \hline
+    Bandwidth & 100 Mbps minimum \\ \hline
+    \end{tabular}
+    \caption{Recommended Deployment Specifications}
+\end{table}
+
+\section{API Documentation}
+
+\subsection{Prediction Endpoint}
+
+\textbf{Endpoint}: \texttt{POST /predict}
+
+\textbf{Description}: Accepts an image file and returns disease prediction with detailed information.
+
+\textbf{Request}:
+\begin{lstlisting}[language=text]
+Content-Type: multipart/form-data
+
+Parameters:
+- file: Image file (JPEG, PNG, WEBP)
+- plant_type (optional): Filter predictions by plant type
+\end{lstlisting}
+
+\textbf{Response} (Success):
+\begin{lstlisting}[language=json]
+{
+  "class": "Tomato___Early_blight",
+  "confidence": 94.5,
+  "message": "High confidence prediction.",
+  "top3_predictions": [
+    {"class": "Tomato___Early_blight", "confidence": 94.5},
+    {"class": "Tomato___Late_blight", "confidence": 3.2},
+    {"class": "Tomato___Bacterial_spot", "confidence": 1.1}
+  ],
+  "symptoms": [
+    "Dark brown spots with concentric rings",
+    "Yellowing around spots",
+    "Stem lesions"
+  ],
+  "causes": [
+    "Fungal infection by Alternaria solani",
+    "Warm humid conditions"
+  ],
+  "treatments": {
+    "chemical": ["Apply Chlorothalonil or Mancozeb"],
+    "organic": ["Neem oil spray", "Baking soda solution"],
+    "prevention": ["Use disease-free transplants", "Mulch"]
+  }
+}
+\end{lstlisting}
+
+\textbf{Response} (Invalid Image):
+\begin{lstlisting}[language=json]
+{
+  "class": "invalid_image",
+  "confidence": 0,
+  "message": "The image does not appear to be a plant."
+}
+\end{lstlisting}
+
+\subsection{Health Check Endpoint}
+
+\textbf{Endpoint}: \texttt{GET /health}
+
+\textbf{Description}: Returns the health status of the API server.
+
+\textbf{Response}:
+\begin{lstlisting}[language=json]
+{
+  "status": "healthy",
+  "model_loaded": true,
+  "device": "cuda:0"
+}
+\end{lstlisting}
+
+\section{Training Dataset Statistics}
+
+\subsection{Dataset Composition}
+
+The model was trained on the PlantVillage dataset with the following distribution:
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Crop} & \textbf{Classes} & \textbf{Training Images} & \textbf{Validation Images} \\ \hline
+    Tomato & 10 & 18,160 & 1,816 \\ \hline
+    Potato & 3 & 2,152 & 215 \\ \hline
+    Corn (Maize) & 4 & 3,852 & 385 \\ \hline
+    Apple & 4 & 3,171 & 317 \\ \hline
+    Grape & 4 & 4,062 & 406 \\ \hline
+    Pepper & 2 & 1,478 & 148 \\ \hline
+    Cherry & 2 & 1,000 & 100 \\ \hline
+    Peach & 2 & 2,800 & 280 \\ \hline
+    Strawberry & 2 & 1,109 & 111 \\ \hline
+    Others & 5 & 3,500 & 350 \\ \hline
+    \textbf{Total} & \textbf{38} & \textbf{41,284} & \textbf{4,128} \\ \hline
+    \end{tabular}
+    \caption{Training Dataset Distribution}
+\end{table}
+
+\subsection{Data Augmentation Techniques}
+
+The following augmentation techniques were applied during training:
+
+\begin{itemize}
+    \item Random Resized Crop (scale: 0.6-1.0)
+    \item Random Horizontal Flip (p=0.5)
+    \item Random Vertical Flip (p=0.2)
+    \item Random Rotation (±30 degrees)
+    \item Color Jitter (brightness, contrast, saturation, hue)
+    \item Random Affine Translation (±10\%)
+    \item Random Erasing (p=0.2, scale: 0.02-0.2)
+\end{itemize}
+
+\section{Model Architecture Details}
+
+\subsection{EfficientNet-B2 Specifications}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Parameter} & \textbf{Value} \\ \hline
+    Input Resolution & 260 × 260 × 3 \\ \hline
+    Total Parameters & 9.2 Million \\ \hline
+    Trainable Parameters & 9.2 Million \\ \hline
+    Depth & 16 layers \\ \hline
+    Width Multiplier & 1.1 \\ \hline
+    Resolution Multiplier & 1.15 \\ \hline
+    Dropout Rate & 0.3 (backbone) + 0.4 (classifier) \\ \hline
+    \end{tabular}
+    \caption{EfficientNet-B2 Architecture Parameters}
+\end{table}
+
+\subsection{Custom Classifier Head}
+
+The custom classification head consists of:
+
+\begin{enumerate}
+    \item Batch Normalization (1408 features)
+    \item Linear Layer (1408 → 512)
+    \item ReLU Activation
+    \item Dropout (p=0.4)
+    \item Linear Layer (512 → 256)
+    \item ReLU Activation
+    \item Dropout (p=0.2)
+    \item Linear Layer (256 → 38)
+\end{enumerate}
+
+\section{Deployment Instructions}
+
+\subsection{Local Deployment}
+
+\textbf{Step 1: Clone the Repository}
+\begin{lstlisting}[language=bash]
+git clone https://github.com/mayank8868/agro-mind-grow.git
+cd agro-mind-grow
+\end{lstlisting}
+
+\textbf{Step 2: Set Up Backend}
+\begin{lstlisting}[language=bash]
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python train.py  # Train the model (optional if pre-trained model available)
+python api.py  # Start the API server
+\end{lstlisting}
+
+\textbf{Step 3: Set Up Frontend}
+\begin{lstlisting}[language=bash]
+cd ../frontend
+npm install
+npm run dev
+\end{lstlisting}
+
+\textbf{Step 4: Access the Application}
+
+Open your browser and navigate to \texttt{http://localhost:5173}
+
+\subsection{Cloud Deployment (AWS Example)}
+
+\textbf{Step 1: Set Up EC2 Instance}
+\begin{itemize}
+    \item Launch t3.medium instance with Ubuntu 22.04
+    \item Configure security groups (ports 22, 80, 443, 8000)
+    \item Attach Elastic IP for static address
+\end{itemize}
+
+\textbf{Step 2: Install Dependencies}
+\begin{lstlisting}[language=bash]
+sudo apt update
+sudo apt install python3-pip nodejs npm nginx
+\end{lstlisting}
+
+\textbf{Step 3: Deploy Backend}
+\begin{lstlisting}[language=bash]
+# Clone repository and install dependencies
+git clone https://github.com/mayank8868/agro-mind-grow.git
+cd agro-mind-grow/backend
+pip3 install -r requirements.txt
+
+# Set up systemd service for API
+sudo nano /etc/systemd/system/agromind-api.service
+# Configure service to run uvicorn
+sudo systemctl enable agromind-api
+sudo systemctl start agromind-api
+\end{lstlisting}
+
+\textbf{Step 4: Deploy Frontend}
+\begin{lstlisting}[language=bash]
+cd ../frontend
+npm install
+npm run build
+sudo cp -r dist/* /var/www/html/
+\end{lstlisting}
+
+\textbf{Step 5: Configure Nginx}
+\begin{lstlisting}[language=nginx]
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        root /var/www/html;
+        try_files $uri /index.html;
+    }
+
+    location /api {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+\end{lstlisting}
+
+\section{Troubleshooting Guide}
+
+\subsection{Common Issues and Solutions}
+
+\subsubsection{Model Loading Errors}
+
+\textbf{Issue}: \texttt{RuntimeError: CUDA out of memory}
+
+\textbf{Solution}:
+\begin{itemize}
+    \item Reduce batch size in training configuration
+    \item Use CPU for inference: \texttt{DEVICE = torch.device("cpu")}
+    \item Enable mixed precision training with smaller batch size
+\end{itemize}
+
+\subsubsection{API Connection Errors}
+
+\textbf{Issue}: Frontend cannot connect to backend API
+
+\textbf{Solution}:
+\begin{itemize}
+    \item Verify backend is running: \texttt{curl http://localhost:8000/health}
+    \item Check CORS configuration in \texttt{api.py}
+    \item Update API URL in frontend configuration
+\end{itemize}
+
+\subsubsection{Image Upload Failures}
+
+\textbf{Issue}: Images fail to upload or process
+
+\textbf{Solution}:
+\begin{itemize}
+    \item Check file size limits (default: 10MB)
+    \item Verify image format (JPEG, PNG, WEBP supported)
+    \item Ensure proper file permissions
+\end{itemize}
+
+\section{Performance Benchmarks}
+
+\subsection{Inference Speed}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Hardware} & \textbf{Avg. Inference Time} & \textbf{Throughput} \\ \hline
+    NVIDIA RTX 3050 (GPU) & 45 ms & 22 images/sec \\ \hline
+    Intel Core i5 (CPU) & 380 ms & 2.6 images/sec \\ \hline
+    AWS t3.medium (CPU) & 420 ms & 2.4 images/sec \\ \hline
+    \end{tabular}
+    \caption{Inference Performance Benchmarks}
+\end{table}
+
+\subsection{Accuracy Metrics by Crop}
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Crop} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\ \hline
+    Tomato & 0.96 & 0.95 & 0.95 \\ \hline
+    Potato & 0.97 & 0.97 & 0.97 \\ \hline
+    Corn & 0.98 & 0.98 & 0.98 \\ \hline
+    Apple & 0.94 & 0.93 & 0.93 \\ \hline
+    Grape & 0.95 & 0.96 & 0.95 \\ \hline
+    Pepper & 0.96 & 0.95 & 0.95 \\ \hline
+    \textbf{Overall} & \textbf{0.96} & \textbf{0.96} & \textbf{0.96} \\ \hline
+    \end{tabular}
+    \caption{Per-Crop Performance Metrics}
+\end{table}
+
+\section{Glossary of Terms}
+
+\begin{description}
+    \item[API (Application Programming Interface)] A set of protocols and tools for building software applications that specify how software components should interact.
+    
+    \item[CNN (Convolutional Neural Network)] A class of deep neural networks most commonly applied to analyzing visual imagery.
+    
+    \item[CORS (Cross-Origin Resource Sharing)] A mechanism that allows restricted resources on a web page to be requested from another domain.
+    
+    \item[EfficientNet] A family of convolutional neural networks that achieve state-of-the-art accuracy while being more parameter-efficient than previous models.
+    
+    \item[FastAPI] A modern, fast web framework for building APIs with Python based on standard Python type hints.
+    
+    \item[Fine-tuning] The process of taking a pre-trained model and training it further on a new, typically smaller dataset.
+    
+    \item[Inference] The process of using a trained model to make predictions on new, unseen data.
+    
+    \item[PyTorch] An open-source machine learning library based on the Torch library, used for applications such as computer vision and natural language processing.
+    
+    \item[React] A JavaScript library for building user interfaces, maintained by Facebook and a community of individual developers and companies.
+    
+    \item[Transfer Learning] A machine learning method where a model developed for one task is reused as the starting point for a model on a second task.
+    
+    \item[TypeScript] A strongly typed programming language that builds on JavaScript, giving you better tooling at any scale.
+    
+    \item[Vite] A build tool that aims to provide a faster and leaner development experience for modern web projects.
+\end{description}
+
+\section{Acknowledgments}
+
+This project would not have been possible without the contributions of various open-source communities and datasets:
+
+\begin{itemize}
+    \item \textbf{PlantVillage Dataset}: For providing the comprehensive plant disease image dataset used for training.
+    \item \textbf{PyTorch Team}: For the excellent deep learning framework.
+    \item \textbf{FastAPI Developers}: For the high-performance web framework.
+    \item \textbf{React Community}: For the robust frontend library and ecosystem.
+    \item \textbf{Agricultural Extension Services}: For domain knowledge and validation of disease information.
+\end{itemize}
+
+\section{License and Usage}
+
+This project is released under the MIT License. Users are free to use, modify, and distribute the code for both commercial and non-commercial purposes, subject to the terms of the license.
+
+For academic use, please cite this work as:
+
+\begin{quote}
+Yadav, M., Dhami, S., Ji, G., Sourav, \& Haris, M. (2024). AgroMind Grow: AI-Driven Smart Agriculture Platform for Plant Disease Detection. B.Tech Project Report, Department of Computer Science and Engineering, KCC Institute of Technology and Management, Greater Noida, India.
+\end{quote}

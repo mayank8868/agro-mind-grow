@@ -1,0 +1,97 @@
+\chapter{Theoretical Background}
+
+\section{Introduction to AI in Agriculture}
+Artificial Intelligence (AI) is transforming the agricultural sector by enabling data-driven decisions. The integration of AI technologies such as Machine Learning (ML), Computer Vision, and Internet of Things (IoT) is creating a paradigm shift known as "Precision Agriculture".
+
+\subsection{Historical Context}
+Traditionally, agriculture relied heavily on manual labor and intuitive knowledge passed down through generations. The Green Revolution in the mid-20th century introduced mechanization and chemical inputs, significantly boosting yields. However, the 21st century faces new challenges: climate change, soil degradation, and a growing global population. AI offers the "Digital Revolution" in agriculture, optimizing resource use and minimizing environmental impact.
+
+\subsection{Role of Computer Vision}
+Computer Vision, a field of AI that enables computers to interpret and understand the visual world, is particularly impactful in plant pathology. By analyzing images of crops captured by smartphones or drones, algorithms can detect diseases, pests, and nutrient deficiencies with accuracy often surpassing human experts.
+
+\section{Convolutional Neural Networks (CNNs)}
+Convolutional Neural Networks (CNNs) are the backbone of modern image recognition systems. Unlike traditional neural networks, CNNs preserve the spatial relationship between pixels by learning image features using small squares of input data.
+
+\subsection{Mathematical Foundation}
+
+\subsubsection{Convolution Operation}
+The core operation of a CNN is the convolution. Given an input image $I$ and a filter (kernel) $K$ of dimensions $k \times k$, the output feature map $S$ is calculated as:
+\begin{equation}
+S(i, j) = (I * K)(i, j) = \sum_{m} \sum_{n} I(i-m, j-n) K(m, n)
+\end{equation}
+This operation slides the kernel over the input, computing the dot product at each position. This allows the network to detect local features like edges, corners, and textures.
+
+\subsubsection{Activation Function (ReLU)}
+To introduce non-linearity, the Rectified Linear Unit (ReLU) is applied element-wise:
+\begin{equation}
+f(x) = \max(0, x)
+\end{equation}
+This simple function accelerates convergence by alleviating the vanishing gradient problem common in sigmoid or tanh activations.
+
+\subsubsection{Pooling Operation}
+Pooling reduces the spatial dimensions of the feature maps, reducing computation and controlling overfitting. Max pooling selects the maximum value from a window:
+\begin{equation}
+P(i, j) = \max_{(m, n) \in R_{ij}} S(m, n)
+\end{equation}
+where $R_{ij}$ is the local neighborhood around position $(i, j)$.
+
+\subsubsection{Backpropagation}
+Training a CNN involves minimizing a loss function $L$ (e.g., Cross-Entropy) using Gradient Descent. The weights $W$ are updated iteratively:
+\begin{equation}
+W_{new} = W_{old} - \eta \frac{\partial L}{\partial W}
+\end{equation}
+where $\eta$ is the learning rate. The gradients are computed using the Chain Rule, propagating errors from the output layer back to the input layers.
+
+\section{EfficientNet Architecture}
+EfficientNet is a family of models designed to achieve state-of-the-art accuracy with significantly fewer parameters than previous architectures like ResNet or Inception.
+
+\subsection{Compound Scaling}
+Most models scale only one dimension: depth (number of layers), width (number of channels), or resolution (image size). EfficientNet proposes a \textbf{Compound Scaling Method} that uniformly scales all three dimensions using a compound coefficient $\phi$:
+\begin{align}
+\text{depth: } d &= \alpha^{\phi} \\
+\text{width: } w &= \beta^{\phi} \\
+\text{resolution: } r &= \gamma^{\phi}
+\end{align}
+subject to $\alpha \cdot \beta^2 \cdot \gamma^2 \approx 2$ and $\alpha \ge 1, \beta \ge 1, \gamma \ge 1$.
+
+\subsection{MBConv Blocks}
+The building block of EfficientNet is the Mobile Inverted Bottleneck Convolution (MBConv). It consists of:
+\begin{enumerate}
+    \item \textbf{Expansion}: A $1 \times 1$ convolution expands the channel dimension.
+    \item \textbf{Depthwise Convolution}: A $3 \times 3$ or $5 \times 5$ depthwise convolution processes each channel independently.
+    \item \textbf{Squeeze-and-Excitation (SE)}: An attention mechanism that adaptively recalibrates channel-wise feature responses.
+    \item \textbf{Projection}: A $1 \times 1$ convolution projects the channels back to a lower dimension.
+\end{enumerate}
+
+\subsection{Squeeze-and-Excitation (SE) Optimization}
+The SE block explicitly models interdependencies between channels. It "squeezes" global spatial information into a channel descriptor and "excites" (recalibrates) the feature maps.
+\begin{equation}
+z_c = F_{sq}(u_c) = \frac{1}{H \times W} \sum_{i=1}^{H} \sum_{j=1}^{W} u_c(i, j)
+\end{equation}
+This allows the network to emphasize informative features and suppress less useful ones.
+
+\section{Web Technologies Stack}
+
+\subsection{React.js (Frontend)}
+React is a declarative, efficient, and flexible JavaScript library for building user interfaces.
+\begin{itemize}
+    \item \textbf{Virtual DOM}: React creates an in-memory data structure cache, computes the resulting differences, and then updates the browser's displayed DOM efficiently.
+    \item \textbf{Component-Based}: The UI is split into independent, reusable pieces. In our project, \texttt{PestControl}, \texttt{Navigation}, and \texttt{Dashboard} are all separate components.
+    \item \textbf{Hooks}: We utilize hooks like \texttt{useState} for state management and \texttt{useEffect} for side effects (e.g., fetching data).
+\end{itemize}
+
+\subsection{FastAPI (Backend)}
+FastAPI is a modern, high-performance web framework for building APIs with Python 3.6+.
+\begin{itemize}
+    \item \textbf{Asynchronous Support}: Built on \texttt{Starlette}, it supports \texttt{async/await} syntax natively, allowing for non-blocking I/O operations (crucial for handling multiple image upload requests).
+    \item \textbf{Pydantic Validation}: It uses Python type hints to validate data automatically.
+    \item \textbf{Performance}: Benchmarks show it is one of the fastest Python frameworks, comparable to NodeJS and Go.
+\end{itemize}
+
+\subsection{REST API Architecture}
+The communication between the React frontend and FastAPI backend follows the REST (Representational State Transfer) architectural style.
+\begin{itemize}
+    \item \textbf{Stateless}: Each request from client to server must contain all the information needed to understand the request.
+    \item \textbf{Resource-Based}: Resources (e.g., Prediction, Weather) are identified by URIs.
+    \item \textbf{Methods}: We use standard HTTP methods: \texttt{GET} for fetching data and \texttt{POST} for uploading images.
+\end{itemize}
