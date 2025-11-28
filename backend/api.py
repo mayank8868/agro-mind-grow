@@ -112,14 +112,51 @@ preprocess = transforms.Compose([
 
 def is_valid_image(image: Image.Image) -> bool:
     """
-    Simplified validation - accept all images and let the model decide.
-    The confidence threshold will filter out truly invalid predictions.
+    Smart validation - rejects animals/people but accepts all plant types.
     """
-    # Just do basic checks
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
-    # Accept all images - let the model's confidence threshold handle filtering
+    # Resize for analysis
+    img_small = image.resize((100, 100))
+    
+    # Analyze center region
+    width, height = img_small.size
+    left, top = (width - 50) / 2, (height - 50) / 2
+    right, bottom = (width + 50) / 2, (height + 50) / 2
+    img_center = img_small.crop((left, top, right, bottom))
+    
+    pixels = np.array(img_center)
+    r, g, b = pixels[:,:,0], pixels[:,:,1], pixels[:,:,2]
+    
+    # Calculate color ratios
+    total_pixels = pixels.shape[0] * pixels.shape[1]
+    
+    # Skin tone detection (reject animals/people)
+    # Skin tones: high R, medium G, low B, and R > G > B
+    skin_mask = (r > 95) & (g > 40) & (b > 20) & (r > g) & (g > b) & ((r - g) > 15)
+    skin_ratio = np.sum(skin_mask) / total_pixels
+    
+    # Blue dominance (sky, water, artificial objects)
+    blue_mask = (b > r) & (b > g) & (b > 100)
+    blue_ratio = np.sum(blue_mask) / total_pixels
+    
+    # Texture variance
+    variance = np.var(pixels)
+    
+    # Reject if too much skin tone (likely animal/person)
+    if skin_ratio > 0.25:
+        return False
+    
+    # Reject if too much bright blue
+    if blue_ratio > 0.30:
+        return False
+        
+    # Reject if too uniform (blank/solid color)
+    if variance < 150:
+        return False
+    
+    # Accept everything else (all plant types)
     return True
 
 @app.post("/predict")
