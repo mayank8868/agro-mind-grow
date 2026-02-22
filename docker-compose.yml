@@ -12,6 +12,10 @@ services:
       - backend_data:/app/models
     environment:
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    ports:
+      - "7860:7860"
     networks:
       - agromind-network
     healthcheck:

@@ -13,4 +13,4 @@ python-multipart>=0.0.20
 google-generativeai
 httpx>=0.24.0
 python-dotenv
-google-generativeai
+requests
